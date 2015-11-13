@@ -1,0 +1,52 @@
+description = 'Crate Testing'
+
+apply plugin: 'idea'
+apply plugin: 'java'
+apply plugin: 'maven'
+
+group = "io.crate"
+
+repositories {
+    mavenCentral()
+    jcenter()
+}
+
+dependencies {
+    compile "junit:junit:$junitVersion"
+    compile 'io.crate:crate-client:0.49.2'
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir 'src/main/java'
+        }
+    }
+    test {
+        resources {
+            srcDir 'src/test/java'
+        }
+    }
+}
+
+idea {
+    project {
+        languageLevel = 'JDK_1_7'
+
+        ipr {
+            withXml { provider ->
+                def node = provider.asNode()
+                def copyrightManager = node.component.find { it.'@name' == 'CopyrightManager' }
+                copyrightManager.@default = "CrateASL2"
+                def aslCopyright = copyrightManager.copyright.find { it.option.find { it.@name == "myName" }?.@value == "CrateASL2" }
+                if (aslCopyright == null) {
+                    copyrightManager.append(new XmlParser().parse(file("copyright.xml")))
+                }
+            }
+        }
+    }
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '2.8'
+}
