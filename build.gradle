@@ -2,7 +2,6 @@ description = 'Crate Testing'
 
 apply plugin: 'idea'
 apply plugin: 'java'
-apply plugin: 'maven'
 
 group = "io.crate"
 
@@ -13,19 +12,10 @@ repositories {
 
 dependencies {
     compile "junit:junit:$junitVersion"
-    compile 'io.crate:crate-client:0.49.2'
-}
-
-sourceSets {
-    main {
-        java {
-            srcDir 'src/main/java'
-        }
-    }
-    test {
-        resources {
-            srcDir 'src/test/java'
-        }
+    compile "io.crate:crate-client:$crateClientVersion"
+    compile "org.apache.commons:commons-compress:1.2"
+    testCompile ("com.carrotsearch.randomizedtesting:randomizedtesting-runner:$randomizedTestingVersion") {
+        exclude group: 'junit', module: 'junit'
     }
 }
 

@@ -21,20 +21,23 @@
 
 package io.crate.testing;
 
+import io.crate.action.sql.SQLRequest;
+import io.crate.action.sql.SQLResponse;
 import io.crate.client.CrateClient;
 import io.crate.shade.com.google.common.base.Joiner;
 import io.crate.shade.com.google.common.base.MoreObjects;
 import io.crate.shade.org.elasticsearch.client.transport.NoNodeAvailableException;
 import io.crate.shade.org.elasticsearch.common.Nullable;
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
+import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
+import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
 import org.junit.rules.ExternalResource;
 
 import java.io.*;
 import java.net.InetAddress;
 import java.net.ServerSocket;
-import java.nio.file.FileVisitResult;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.SimpleFileVisitor;
+import java.net.URL;
+import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Locale;
 import java.util.concurrent.*;
@@ -49,11 +52,15 @@ public class CrateTestServer extends ExternalResource {
     private final String workingDir;
     private final String clusterName;
     private final String[] unicastHosts;
+    private final String crateVersion;
+
+    private CrateClient crateClient;
+
 
     private Process crateProcess;
     private ThreadPoolExecutor executor;
 
-    public static CrateTestServer[] cluster(String clusterName, int numberOfNodes) {
+    public static CrateTestServer[] cluster(String clusterName, String crateVersion, int numberOfNodes) {
         int transportPorts[] = new int[numberOfNodes];
         int httpPorts[] = new int[numberOfNodes];
         for (int i = 0; i<numberOfNodes; i++) {
@@ -64,7 +71,7 @@ public class CrateTestServer extends ExternalResource {
         CrateTestServer[] servers = new CrateTestServer[numberOfNodes];
         String[] unicastHosts = getUnicastHosts(hostAddress, transportPorts);
         for (int i = 0; i< numberOfNodes; i++) {
-            servers[i] = new CrateTestServer(clusterName, hostAddress,
+            servers[i] = new CrateTestServer(clusterName, crateVersion, hostAddress,
                     httpPorts[i], transportPorts[i],
                     unicastHosts);
         }
@@ -79,21 +86,23 @@ public class CrateTestServer extends ExternalResource {
         return result;
     }
 
-    public CrateTestServer(@Nullable String clusterName) {
+    public CrateTestServer(@Nullable String clusterName, String crateVersion) {
         this(clusterName,
-                randomAvailablePort(),
-                randomAvailablePort(),
-                System.getProperty("user.dir"),
-                InetAddress.getLoopbackAddress().getHostAddress());
+             crateVersion,
+             randomAvailablePort(),
+             randomAvailablePort(),
+             System.getProperty("user.dir"),
+             InetAddress.getLoopbackAddress().getHostAddress());
     }
 
-    public CrateTestServer(@Nullable String clusterName,String host, int httpPort, int transportPort, String ... unicastHosts) {
-        this(clusterName, httpPort, transportPort, System.getProperty("user.dir"), host, unicastHosts);
+    public CrateTestServer(@Nullable String clusterName, String crateVersion, String host, int httpPort, int transportPort, String ... unicastHosts) {
+        this(clusterName, crateVersion, httpPort, transportPort, System.getProperty("user.dir"), host, unicastHosts);
     }
 
-    public CrateTestServer(@Nullable String clusterName, int httpPort, int transportPort,
+    public CrateTestServer(@Nullable String clusterName, String crateVersion, int httpPort, int transportPort,
                            String workingDir, String host, String ... unicastHosts) {
         this.clusterName = MoreObjects.firstNonNull(clusterName, "Testing" + transportPort);
+        this.crateVersion = crateVersion;
         this.crateHost = host;
         this.httpPort = httpPort;
         this.transportPort = transportPort;
@@ -109,10 +118,19 @@ public class CrateTestServer extends ExternalResource {
         executor.prestartAllCoreThreads();
     }
 
+
+    public SQLResponse execute(String statement) {
+        return execute(statement, new Object[0]);
+    }
+
+    public SQLResponse execute(String statement, Object[] args) {
+        return crateClient.sql(new SQLRequest(statement, args)).actionGet(10, TimeUnit.SECONDS);
+    }
+
     /**
      * @return a random available port for binding
      */
-    public static int randomAvailablePort() {
+    private static int randomAvailablePort() {
         try {
             ServerSocket socket = new  ServerSocket(0);
             int port = socket.getLocalPort();
@@ -123,9 +141,69 @@ public class CrateTestServer extends ExternalResource {
         }
     }
 
+    private static void uncompressTarGZ(File tarFile, File dest) throws IOException {
+        TarArchiveInputStream tarIn = new TarArchiveInputStream(
+                new GzipCompressorInputStream(
+                        new BufferedInputStream(
+                                new FileInputStream(
+                                        tarFile
+                                )
+                        )
+                )
+        );
+
+        TarArchiveEntry tarEntry = tarIn.getNextTarEntry();
+        // tarIn is a TarArchiveInputStream
+        while (tarEntry != null) {// create a file with the same name as the tarEntry
+            File destPath = new File(dest, tarEntry.getName().replaceFirst("crate-(.*?)/", ""));
+            System.out.println("extract: " + destPath.getCanonicalPath());
+            if (tarEntry.isDirectory()) {
+                destPath.mkdirs();
+            } else {
+                destPath.createNewFile();
+                byte [] btoRead = new byte[1024];
+                BufferedOutputStream bout =
+                        new BufferedOutputStream(new FileOutputStream(destPath));
+                int len;
+                while((len = tarIn.read(btoRead)) != -1)
+                {
+                    bout.write(btoRead,0, len);
+                }
+
+                bout.close();
+                if (destPath.getParent().equals(dest.getPath() + "/bin")) {
+                    destPath.setExecutable(true);
+                }
+            }
+            tarEntry = tarIn.getNextTarEntry();
+        }
+        tarIn.close();
+    }
+
+    private void downloadCrate() throws IOException {
+        File crateDir = new File(workingDir, "/parts/crate");
+        if (crateDir.exists()) {
+            return;
+        }
+        Path downloadLocation = Files.createTempDirectory("crate-download");
+        System.out.println("Downloading Crate to: "+downloadLocation);
+
+        URL url = new URL("https://cdn.crate.io/downloads/releases/crate-" + crateVersion + ".tar.gz");
+        try (InputStream in = url.openStream()) {
+            Files.copy(in, downloadLocation, StandardCopyOption.REPLACE_EXISTING);
+            uncompressTarGZ(downloadLocation.toFile(), crateDir);
+        }
+        downloadLocation.toFile().delete();
+
+    }
+
+
+
     @Override
     protected void before() throws Throwable {
+        downloadCrate();
         System.out.println("Starting crate server process...");
+        crateClient = new CrateClient(crateHost + ":" + transportPort);
         startCrateAsDaemon();
         if (!waitUntilServerIsReady(60 * 1000)) { // wait 1 minute max
             crateProcess.destroy();
@@ -154,6 +232,8 @@ public class CrateTestServer extends ExternalResource {
         } catch (InterruptedException e) {
             executor.shutdownNow();
         }
+        crateClient.close();
+        crateClient = null;
     }
 
     private void startCrateAsDaemon() throws IOException, InterruptedException {
@@ -209,16 +289,14 @@ public class CrateTestServer extends ExternalResource {
      * @return true if server is ready, false if a timeout or another IOException occurred
      */
     private boolean waitUntilServerIsReady(final int timeoutMillis) throws IOException {
-        final CrateClient client = new CrateClient(crateHost + ":" + transportPort);
         FutureTask<Boolean> task = new FutureTask<>(new Callable<Boolean>() {
             @Override
             public Boolean call() throws Exception {
 
                 while (true) {
                     try {
-                        client.sql("select id from sys.cluster")
+                        crateClient.sql("select id from sys.cluster")
                                 .actionGet(timeoutMillis, TimeUnit.MILLISECONDS);
-                        client.close();
                         break;
                     } catch (NoNodeAvailableException e) {
                         // carry on
