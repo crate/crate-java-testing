@@ -2,6 +2,8 @@ description = 'Crate Testing'
 
 apply plugin: 'idea'
 apply plugin: 'java'
+apply plugin: 'maven'
+apply plugin: 'signing'
 
 group = "io.crate"
 
@@ -39,4 +41,90 @@ idea {
 
 task wrapper(type: Wrapper) {
     gradleVersion = '2.8'
+}
+
+task getVersion ( dependsOn: 'classes') << {
+    ext.gitTag = "git describe".execute().in.text.trim()
+
+    if (!gradle.taskGraph.hasTask(uploadArchives)) {
+        version = version + "-" + "git rev-parse --short HEAD".execute().in.text.trim()
+    }
+
+    logger.quiet("gitTag: " + gitTag)
+    logger.quiet("version: " + version)
+}
+
+
+jar.dependsOn getVersion
+jar {
+    baseName 'crate-testing'
+    doLast {
+        manifest {
+            attributes("Implementation-Title": "Crate.IO Testing", "Implementation-Version": project.version)
+        }
+    }
+}
+
+
+artifacts {
+    archives jar
+}
+
+task signJars (type : Sign, dependsOn: [jar]) {
+    sign configurations.archives
+}
+
+
+project.ext.bintrayUsername = project.hasProperty('bintrayUsername') ? bintrayUsername : ""
+project.ext.bintrayPassword = project.hasProperty('bintrayPassword') ? bintrayPassword : ""
+project.ext.url = 'https://crate.io'
+project.ext.scm = {
+    url 'https://github.com/crate/crate-java-testing'
+    connection 'scm:git:git://github.com/crate/crate-java-testing.git'
+    developerConnection 'scm:git:ssh:git@github.com:crate/crate-java-testing.git'
+}
+project.ext.licenses = {
+    license {
+        name 'The Apache Software License, Version 2.0'
+        url 'http://www.apache.org/license/LICENSE-2.0.txt'
+        distribution 'repo'
+    }
+}
+project.ext.developers = {
+    developer {
+        id 'crate'
+        name 'Crate Developers'
+        email 'office@crate.io'
+    }
+}
+
+uploadArchives.dependsOn([signJars])
+uploadArchives {
+    repositories{
+        mavenDeployer {
+            beforeDeployment {
+                MavenDeployment deployment -> signing.signPom(deployment)
+                    if (project.ext.bintrayUsername.length() == 0 || project.ext.bintrayPassword.length() == 0) {
+                        throw new StopExecutionException("uploadArchives cannot be called without bintray username and password")
+                    }
+            }
+
+            MavenPom pomJdbc = addFilter('crate-testing') {artifact, file ->
+                artifact.name == 'crate-testing'
+            }
+            pomJdbc.project {
+                artifactId 'crate-testing'
+                name 'crate-testing'
+                description 'Crate.IO Java Test layer which is used to download and start crate for testing'
+                url project.ext.url
+                scm project.ext.scm
+                licenses project.ext.licenses
+                developers project.ext.developers
+            }
+
+            repository(id: 'crate-testing', url: 'https://api.bintray.com/maven/crate/crate/crate-testing') {
+                authentication(userName: project.ext.bintrayUsername, password: project.ext.bintrayPassword)
+            }
+        }
+    }
 }
