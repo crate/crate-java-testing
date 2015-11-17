@@ -7,6 +7,8 @@ apply plugin: 'signing'
 
 group = "io.crate"
 
+archivesBaseName = "crate-testing"
+
 repositories {
     mavenCentral()
     jcenter()
@@ -65,12 +67,56 @@ jar {
     }
 }
 
+sourceSets {
+    main {
+        java {
+            srcDir 'src/main/java'
+        }
+    }
+    test {
+        resources {
+            srcDir 'src/test/java'
+        }
+    }
+}
+
+task myJavadocs(type: Javadoc, dependsOn: processResources) {
+    classpath = configurations.compile
+    source = sourceSets.main.allJava
+}
+
+task javadocJar (type: Jar, dependsOn: [myJavadocs]) {
+    classifier = 'javadoc'
+    from myJavadocs.destinationDir
+    manifest {
+        attributes("Implementation-Title": "Crate.IO Testing")
+    }
+}
+
+task buildJavadocJar (dependsOn: [getVersion, myJavadocs] ) << {
+    tasks.javadocJar.execute()
+}
+
+task sourceJar (type : Jar) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+    manifest {
+        attributes("Implementation-Title": "Crate.IO Testing")
+    }
+}
+
+task buildSourceJar (dependsOn: [getVersion] ) << {
+    tasks.sourceJar.execute()
+}
+
 
 artifacts {
     archives jar
+    archives javadocJar
+    archives sourceJar
 }
 
-task signJars (type : Sign, dependsOn: [jar]) {
+task signJars (type : Sign, dependsOn: [jar, buildJavadocJar, buildSourceJar]) {
     sign configurations.archives
 }
 
