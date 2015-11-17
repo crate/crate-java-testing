@@ -21,11 +21,14 @@
 
 package io.crate.testing;
 
+import io.crate.action.sql.SQLBulkRequest;
+import io.crate.action.sql.SQLBulkResponse;
 import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
 import io.crate.client.CrateClient;
 import io.crate.shade.com.google.common.base.Joiner;
 import io.crate.shade.com.google.common.base.MoreObjects;
+import io.crate.shade.org.elasticsearch.action.ActionFuture;
 import io.crate.shade.org.elasticsearch.client.transport.NoNodeAvailableException;
 import io.crate.shade.org.elasticsearch.common.Nullable;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
@@ -124,7 +127,13 @@ public class CrateTestServer extends ExternalResource {
     }
 
     public SQLResponse execute(String statement, Object[] args) {
-        return crateClient.sql(new SQLRequest(statement, args)).actionGet(10, TimeUnit.SECONDS);
+        ActionFuture<SQLResponse> future = crateClient.sql(new SQLRequest(statement, args));
+        return future.actionGet(10, TimeUnit.SECONDS);
+    }
+
+    public SQLBulkResponse execute(String statement, Object[][] bulkArgs) {
+        ActionFuture<SQLBulkResponse> bulkResponse = crateClient.bulkSql(new SQLBulkRequest(statement, bulkArgs));
+        return bulkResponse.actionGet(10, TimeUnit.SECONDS);
     }
 
     /**
@@ -295,8 +304,8 @@ public class CrateTestServer extends ExternalResource {
 
                 while (true) {
                     try {
-                        crateClient.sql("select id from sys.cluster")
-                                .actionGet(timeoutMillis, TimeUnit.MILLISECONDS);
+                        ActionFuture<SQLResponse> future = crateClient.sql("select id from sys.cluster");
+                        future.actionGet(timeoutMillis, TimeUnit.MILLISECONDS);
                         break;
                     } catch (NoNodeAvailableException e) {
                         // carry on
