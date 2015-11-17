@@ -23,7 +23,6 @@ package io.crate.integrationtests;
 
 import com.carrotsearch.randomizedtesting.RandomizedTest;
 import io.crate.action.sql.SQLResponse;
-import io.crate.client.CrateClient;
 import io.crate.testing.CrateTestServer;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -33,7 +32,6 @@ import static org.hamcrest.core.Is.is;
 public class SimpleIntegrationTest extends RandomizedTest {
 
     private static final String CLUSTER_NAME = "crate-jave-testing";
-    private static CrateClient crateClient;
 
     @ClassRule
     public static final CrateTestServer testServer = new CrateTestServer(CLUSTER_NAME, "0.52.2");
