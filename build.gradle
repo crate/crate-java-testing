@@ -1,9 +1,13 @@
+plugins {
+    id 'idea'
+    id 'java'
+    id 'maven'
+    id 'signing'
+    id 'com.github.johnrengelman.shadow' version '1.2.1'
+}
+
 description = 'Crate Testing'
 
-apply plugin: 'idea'
-apply plugin: 'java'
-apply plugin: 'maven'
-apply plugin: 'signing'
 
 group = "io.crate"
 
@@ -57,9 +61,17 @@ task getVersion ( dependsOn: 'classes') << {
 }
 
 
-jar.dependsOn getVersion
-jar {
+shadowJar {
     baseName 'crate-testing'
+    classifier ''
+    duplicatesStrategy 'exclude'
+    exclude 'META-INF/**'
+
+    relocate 'io.crate.action',     'io.crate.testserver.action'
+    relocate 'io.crate.client',     'io.crate.testserver.client'
+    relocate 'io.crate.shade',      'io.crate.testserver.shade'
+    relocate 'org.apache.commons',  'io.crate.testserver.apache.commons'
+
     doLast {
         manifest {
             attributes("Implementation-Title": "Crate.IO Testing", "Implementation-Version": project.version)
@@ -79,6 +91,14 @@ sourceSets {
         }
     }
 }
+
+task buildJar(dependsOn: [getVersion]) {
+    doLast {
+        ext.version= project.version
+        tasks.shadowJar.execute()
+    }
+}
+tasks.buildJar.mustRunAfter jar // otherwise jar task would override shadowJar artifact
 
 task myJavadocs(type: Javadoc, dependsOn: processResources) {
     classpath = configurations.compile
@@ -111,12 +131,12 @@ task buildSourceJar (dependsOn: [getVersion] ) << {
 
 
 artifacts {
-    archives jar
+    archives shadowJar
     archives javadocJar
     archives sourceJar
 }
 
-task signJars (type : Sign, dependsOn: [jar, buildJavadocJar, buildSourceJar]) {
+task signJars (type : Sign, dependsOn: [buildJar, buildJavadocJar, buildSourceJar]) {
     sign configurations.archives
 }
 
@@ -155,10 +175,7 @@ uploadArchives {
                     }
             }
 
-            MavenPom pomJdbc = addFilter('crate-testing') {artifact, file ->
-                artifact.name == 'crate-testing'
-            }
-            pomJdbc.project {
+            pom.project {
                 artifactId 'crate-testing'
                 name 'crate-testing'
                 description 'Crate.IO Java Test layer which is used to download and start crate for testing'
@@ -166,6 +183,10 @@ uploadArchives {
                 scm project.ext.scm
                 licenses project.ext.licenses
                 developers project.ext.developers
+            }
+
+            pom = addFilter('crate-testing') {artifact, file ->
+                artifact.name == 'crate-testing'
             }
 
             repository(id: 'crate-testing', url: 'https://api.bintray.com/maven/crate/crate/crate-testing') {
