@@ -189,6 +189,12 @@ uploadArchives {
                 artifact.name == 'crate-testing'
             }
 
+            pom.whenConfigured {
+                p -> p.dependencies = p.dependencies.findAll {
+                    dep -> dep.artifactId != "crate-client"
+                }
+            }
+
             repository(id: 'crate-testing', url: 'https://api.bintray.com/maven/crate/crate/crate-testing') {
                 authentication(userName: project.ext.bintrayUsername, password: project.ext.bintrayPassword)
             }
