@@ -21,17 +21,25 @@
 
 package io.crate.integrationtests;
 
-import com.carrotsearch.randomizedtesting.RandomizedTest;
 import io.crate.action.sql.SQLResponse;
+import io.crate.shade.org.elasticsearch.common.io.FileSystemUtils;
 import io.crate.testing.CrateTestServer;
 import org.junit.ClassRule;
 import org.junit.Test;
 
+import java.io.File;
+
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 
-public class SimpleIntegrationTest extends RandomizedTest {
+public class SimpleIntegrationTest {
 
-    private static final String CLUSTER_NAME = "crate-jave-testing";
+    static {
+        File downloadFolder = new File(CrateTestServer.DEFAULT_WORKING_DIR, "/parts/crate");
+        FileSystemUtils.deleteRecursively(downloadFolder, true);
+    }
+
+    private static final String CLUSTER_NAME = "crate-java-testing";
 
     @ClassRule
     public static final CrateTestServer testServer = new CrateTestServer(CLUSTER_NAME, "0.52.2");
@@ -46,4 +54,11 @@ public class SimpleIntegrationTest extends RandomizedTest {
         assertThat(response.rowCount(), is(1L));
     }
 
+
+
+    @Test
+    public void testClusterName() throws Exception {
+        SQLResponse response = testServer.execute("select name from sys.cluster");
+        assertThat((String)response.rows()[0][0], is(CLUSTER_NAME));
+    }
 }
