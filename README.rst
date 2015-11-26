@@ -8,8 +8,10 @@
 Crate Java Testing
 ==================
 
-The ``crate-java-testing`` project contains a `JUnit`_ external ressource which downloads
-and starts Crate before test execution and stops it afterwards.
+The ``crate-java-testing`` project contains a CrateTestServer and CrateTestCluster
+which are usable as `JUnit external resource`_.
+
+Both classes download and start Crate before test execution and stop it afterwards.
 
 
 Download and Setup
@@ -100,11 +102,13 @@ the ``transport port``, the ``workingDirectory``, the ``host`` and a list of
 Setting up a Cluster
 ====================
 
-It's also possible to set up a crate cluster by using the static cluster method,
-a ``cluster name``, the crate version and the number of nodes must be provided.
-An array of ``CrateTestServer`` is returned, e.g.::
-    
-    CrateTestServer[] servers = CrateTestServer.cluster("myCluster", "0.52.2", 3)
+It's also possible to set up a crate cluster by using the CrateTestCluster class.
+A ``cluster name``, the crate version and the number of nodes must be provided.::
+
+    @ClassRule
+    public static CrateTestCluster cluster = CrateTestCluster.cluster("myCluster", "0.52.2", 3)
+
+CrateTestCluster has the same API for executing SQL statements as the CrateTestServer.
 
 Issue an SQL Request
 ====================
@@ -120,4 +124,4 @@ To issue an sql request, the ``CrateTestServer`` provides the following methods:
 
 .. _`JCenter`: https://bintray.com/bintray/jcenter
 
-.. _`JUnit`:  http://junit.org
+.. _`JUnit external resource`:  https://github.com/junit-team/junit/wiki/Rules#externalresource-rules
