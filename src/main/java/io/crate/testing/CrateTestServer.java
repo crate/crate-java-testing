@@ -68,6 +68,7 @@ public class CrateTestServer extends ExternalResource implements TestCluster {
     private final ExecutorService executor;
 
     private CrateClient crateClient;
+    private TransportClient transportClient;
     private Process crateProcess;
 
     public static class Builder {
@@ -194,7 +195,6 @@ public class CrateTestServer extends ExternalResource implements TestCluster {
         this.unicastHosts = unicastHosts;
         this.workingDir = workingDir;
         this.nodeSettings = settings == null ? ImmutableSettings.EMPTY : settings;
-        BlockingQueue<Runnable> workQueue = new ArrayBlockingQueue<>(1);
         executor = Executors.newFixedThreadPool(2);
     }
 
@@ -222,16 +222,20 @@ public class CrateTestServer extends ExternalResource implements TestCluster {
         return crateClient.bulkSql(new SQLBulkRequest(statement, bulkArgs)).actionGet(timeout);
     }
 
+    private synchronized TransportClient ensureTransportClient() {
+        if (transportClient == null) {
+            transportClient = new TransportClient(ImmutableSettings.builder().put("cluster.name", clusterName).build());
+            transportClient.addTransportAddress(new InetSocketTransportAddress(crateHost, transportPort));
+        }
+        return transportClient;
+    }
+
     public void ensureYellow() {
-        TransportClient transportClient = new TransportClient();
-        transportClient.addTransportAddress(new InetSocketTransportAddress(crateHost, transportPort));
-        transportClient.admin().cluster().prepareHealth().setWaitForYellowStatus().execute().actionGet();
+        ensureTransportClient().admin().cluster().prepareHealth().setWaitForYellowStatus().execute().actionGet();
     }
 
     public void ensureGreen() {
-        TransportClient transportClient = new TransportClient();
-        transportClient.addTransportAddress(new InetSocketTransportAddress(crateHost, transportPort));
-        transportClient.admin().cluster().prepareHealth().setWaitForGreenStatus().execute().actionGet();
+        ensureTransportClient().admin().cluster().prepareHealth().setWaitForGreenStatus().execute().actionGet();
     }
 
     private static void uncompressTarGZ(File tarFile, File dest) throws IOException {
@@ -328,6 +332,10 @@ public class CrateTestServer extends ExternalResource implements TestCluster {
         if (crateClient != null) {
             crateClient.close();
             crateClient = null;
+        }
+        if (transportClient != null) {
+            transportClient.close();
+            transportClient = null;
         }
     }
 

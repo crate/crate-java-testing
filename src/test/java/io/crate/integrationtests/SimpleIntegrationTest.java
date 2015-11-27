@@ -21,11 +21,14 @@
 
 package io.crate.integrationtests;
 
+import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLResponse;
 import io.crate.shade.org.elasticsearch.common.io.FileSystemUtils;
 import io.crate.testing.CrateTestServer;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.io.File;
 
@@ -44,6 +47,8 @@ public class SimpleIntegrationTest {
     @ClassRule
     public static final CrateTestServer testServer = new CrateTestServer(CLUSTER_NAME, "0.52.2");
 
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     @Test
     public void testSimpleTest() {
@@ -60,5 +65,12 @@ public class SimpleIntegrationTest {
     public void testClusterName() throws Exception {
         SQLResponse response = testServer.execute("select name from sys.cluster");
         assertThat((String)response.rows()[0][0], is(CLUSTER_NAME));
+    }
+
+    @Test
+    public void testErrorTest() throws Exception {
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("line 1:1: no viable alternative at input 'wrong'");
+        testServer.execute("wrong");
     }
 }

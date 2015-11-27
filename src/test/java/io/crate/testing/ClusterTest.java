@@ -68,6 +68,8 @@ public class ClusterTest {
                 assertThat((String) clusterResponse.rows()[0][0], is(CLUSTER_NAME));
 
                 assertThat(String.valueOf(clusterResponse.rows()[0][1]), is("true"));
+                cluster.ensureGreen();
+                cluster.ensureYellow();
             }
         } finally {
             cluster.after();

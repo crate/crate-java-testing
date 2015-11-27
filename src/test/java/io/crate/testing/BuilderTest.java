@@ -68,6 +68,9 @@ public class BuilderTest {
 
             assertThat(String.valueOf(clusterResponse.rows()[0][1]), is("true"));
 
+            testServer.ensureGreen();
+            testServer.ensureYellow();
+
         } finally {
             testServer.after();
         }
