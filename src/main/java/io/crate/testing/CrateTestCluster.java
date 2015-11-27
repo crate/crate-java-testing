@@ -169,7 +169,7 @@ public class CrateTestCluster extends ExternalResource implements TestCluster {
 
                 while (true) {
                     try {
-                        long minNumNodes = 0;
+                        long minNumNodes = Long.MAX_VALUE;
                         for (CrateTestServer server : servers) {
                             SQLResponse response = server.execute("select id from sys.nodes", TimeValue.timeValueMillis(timeoutMillis/10));
                             minNumNodes = Math.min(response.rowCount(), minNumNodes);
