@@ -59,6 +59,7 @@ public class CrateTestCluster extends ExternalResource implements TestCluster {
         private String workingDir = CrateTestServer.DEFAULT_WORKING_DIR;
         private URL downloadURL;
         private Settings settings = ImmutableSettings.EMPTY;
+        private String hostAddress = InetAddress.getLoopbackAddress().getHostAddress();
 
         public Builder(String clusterName) {
             this.clusterName = clusterName;
@@ -109,6 +110,11 @@ public class CrateTestCluster extends ExternalResource implements TestCluster {
             return this;
         }
 
+        public Builder host(String host) {
+            this.hostAddress = host;
+            return this;
+        }
+
         private CrateTestServer[] buildServers() {
             int transportPorts[] = new int[numberOfNodes];
             int httpPorts[] = new int[numberOfNodes];
@@ -116,7 +122,6 @@ public class CrateTestCluster extends ExternalResource implements TestCluster {
                 transportPorts[i] = Utils.randomAvailablePort();
                 httpPorts[i] = Utils.randomAvailablePort();
             }
-            String hostAddress = InetAddress.getLoopbackAddress().getHostAddress();
             CrateTestServer[] servers = new CrateTestServer[numberOfNodes];
             String[] unicastHosts = getUnicastHosts(hostAddress, transportPorts);
             for (int i = 0; i < numberOfNodes; i++) {
@@ -203,7 +208,10 @@ public class CrateTestCluster extends ExternalResource implements TestCluster {
         for (CrateTestServer server : servers) {
             server.before();
         }
-        waitUntilClusterIsReady(60 * 1000); // wait for 1 min max
+        if (!waitUntilClusterIsReady(60 * 1000)) { // wait for 1 min max
+            after(); // after is not called when an error happens here
+            throw new IllegalStateException("Crate Test Cluster not started completely");
+        }
     }
 
     @Override

@@ -297,7 +297,7 @@ public class CrateTestServer extends ExternalResource implements TestCluster {
         crateClient = new CrateClient(crateHost + ":" + transportPort);
         startCrateAsDaemon();
         if (!waitUntilServerIsReady(60 * 1000)) { // wait 1 minute max
-            crateProcess.destroy();
+            after(); // after is not called by the test runner when an error happens here
             throw new IllegalStateException("Crate Test Server not started");
         }
 

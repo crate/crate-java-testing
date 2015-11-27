@@ -86,4 +86,18 @@ public class ClusterTest {
                         .build())
                 .build();
     }
+
+    @Test
+    public void testNoNodes() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("no servers given");
+        CrateTestCluster.builder(CLUSTER_NAME)
+                .workingDir(tempFolder.getRoot().getAbsolutePath())
+                .numberOfNodes(0)
+                .fromVersion("0.53.0")
+                .settings(ImmutableSettings.builder()
+                        .put("stats.enabled", true)
+                        .build())
+                .build();
+    }
 }
