@@ -224,7 +224,12 @@ public class CrateTestServer extends ExternalResource implements TestCluster {
 
     private synchronized TransportClient ensureTransportClient() {
         if (transportClient == null) {
-            transportClient = new TransportClient(ImmutableSettings.builder().put("cluster.name", clusterName).build());
+            Settings clientSettings = ImmutableSettings.builder()
+                    .put("cluster.name", clusterName)
+                    // use a classloader to avoid shading hassle
+                    .classLoader(new ShadingClassLoader(getClass().getClassLoader()))
+                    .build();
+            transportClient = new TransportClient(clientSettings);
             transportClient.addTransportAddress(new InetSocketTransportAddress(crateHost, transportPort));
         }
         return transportClient;
