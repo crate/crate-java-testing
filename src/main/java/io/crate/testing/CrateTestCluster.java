@@ -206,7 +206,12 @@ public class CrateTestCluster extends ExternalResource implements TestCluster {
     @Override
     protected void before() throws Throwable {
         for (CrateTestServer server : servers) {
-            server.before();
+            try {
+                server.before();
+            } catch (IllegalStateException e) {
+                after(); // ensure that all testservers are shutdown (and free their port)
+                throw new IllegalStateException("Crate Test Cluster not started completely", e);
+            }
         }
         if (!waitUntilClusterIsReady(60 * 1000)) { // wait for 1 min max
             after(); // after is not called when an error happens here

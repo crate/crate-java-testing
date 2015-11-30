@@ -26,6 +26,7 @@ import io.crate.action.sql.SQLBulkResponse;
 import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
 import io.crate.client.CrateClient;
+import io.crate.client.InternalCrateClient;
 import io.crate.shade.com.google.common.base.Joiner;
 import io.crate.shade.com.google.common.base.MoreObjects;
 import io.crate.shade.com.google.common.base.Preconditions;
@@ -42,6 +43,7 @@ import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
 import org.junit.rules.ExternalResource;
 
 import java.io.*;
+import java.lang.reflect.Field;
 import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -221,6 +223,28 @@ public class CrateTestServer extends ExternalResource implements TestCluster {
         return crateClient.bulkSql(new SQLBulkRequest(statement, bulkArgs)).actionGet(timeout);
     }
 
+    private CrateClient ensureCrateClient() {
+        if (crateClient == null) {
+            crateClient = new CrateClient(ImmutableSettings.builder()
+                    // use a custom classloader to avoid shading hassle
+                    .classLoader(new ShadingClassLoader(getClass().getClassLoader()))
+                    .build(), true);
+
+            // TODO: hack ahead: use reflection only until new CrateClient release contains new constructor
+            //       for creating the client with settings and server addresses
+            try {
+                Field internalCrateClientField = CrateClient.class.getDeclaredField("internalClient");
+                internalCrateClientField.setAccessible(true);
+                InternalCrateClient internalCrateClient = (InternalCrateClient)internalCrateClientField.get(crateClient);
+                internalCrateClient.addTransportAddress(new InetSocketTransportAddress(crateHost, transportPort));
+            } catch (NoSuchFieldException|IllegalAccessException e) {
+                throw new RuntimeException(e);
+            }
+
+        }
+        return crateClient;
+    }
+
     private synchronized TransportClient ensureTransportClient() {
         if (transportClient == null) {
             Settings clientSettings = ImmutableSettings.builder()
@@ -299,26 +323,24 @@ public class CrateTestServer extends ExternalResource implements TestCluster {
 
 
     @Override
-    protected synchronized void before() throws Throwable {
+    protected void before() throws Throwable {
         downloadCrate();
         System.out.println("Starting crate server process...");
         executor = Executors.newFixedThreadPool(2); // new threadpool for new process instance
-        crateClient = new CrateClient(crateHost + ":" + transportPort);
+        crateClient = ensureCrateClient();
         startCrateAsDaemon();
         if (!waitUntilServerIsReady(60 * 1000)) { // wait 1 minute max
             after(); // after is not called by the test runner when an error happens here
             throw new IllegalStateException("Crate Test Server not started");
         }
-
     }
 
     @Override
-    protected synchronized void after() {
+    protected void after() {
         System.out.println("Stopping crate server process...");
         if (crateProcess != null) {
-            crateProcess.destroy();
             try {
-                crateProcess.waitFor();
+                crateProcess.destroyForcibly().waitFor();
                 wipeDataDirectory();
                 wipeLogs();
             } catch (Exception e) {
@@ -375,6 +397,21 @@ public class CrateTestServer extends ExternalResource implements TestCluster {
         processBuilder.directory(new File(workingDir, "/parts/crate"));
         processBuilder.redirectErrorStream(true);
         crateProcess = processBuilder.start();
+
+        // shut down crate process when JVM is cancelled
+        Runtime.getRuntime().addShutdownHook(new Thread() {
+            @Override
+            public void run() {
+                try {
+                    Process localProcess = crateProcess;
+                    if (localProcess != null) {
+                        localProcess.destroyForcibly();
+                    }
+                } catch (Throwable t) {
+                    // ignore
+                }
+            }
+        });
         // print server stdout to stdout
         executor.submit(new Runnable() {
             @Override
