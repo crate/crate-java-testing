@@ -65,8 +65,8 @@ public class CrateTestServer extends ExternalResource implements TestCluster {
     private final String[] unicastHosts;
     private final URL downloadURL;
     private final Settings nodeSettings;
-    private final ExecutorService executor;
 
+    private ExecutorService executor;
     private CrateClient crateClient;
     private TransportClient transportClient;
     private Process crateProcess;
@@ -195,7 +195,6 @@ public class CrateTestServer extends ExternalResource implements TestCluster {
         this.unicastHosts = unicastHosts;
         this.workingDir = workingDir;
         this.nodeSettings = settings == null ? ImmutableSettings.EMPTY : settings;
-        executor = Executors.newFixedThreadPool(2);
     }
 
     public SQLResponse execute(String statement) {
@@ -300,9 +299,10 @@ public class CrateTestServer extends ExternalResource implements TestCluster {
 
 
     @Override
-    protected void before() throws Throwable {
+    protected synchronized void before() throws Throwable {
         downloadCrate();
         System.out.println("Starting crate server process...");
+        executor = Executors.newFixedThreadPool(2); // new threadpool for new process instance
         crateClient = new CrateClient(crateHost + ":" + transportPort);
         startCrateAsDaemon();
         if (!waitUntilServerIsReady(60 * 1000)) { // wait 1 minute max
@@ -313,7 +313,7 @@ public class CrateTestServer extends ExternalResource implements TestCluster {
     }
 
     @Override
-    protected void after() {
+    protected synchronized void after() {
         System.out.println("Stopping crate server process...");
         if (crateProcess != null) {
             crateProcess.destroy();
@@ -332,6 +332,8 @@ public class CrateTestServer extends ExternalResource implements TestCluster {
                 executor.shutdownNow();
             }
         } catch (InterruptedException e) {
+            // ignore
+        } finally {
             executor.shutdownNow();
         }
         if (crateClient != null) {
