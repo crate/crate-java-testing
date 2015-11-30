@@ -62,7 +62,7 @@ public class ShadingClassLoader extends ClassLoader {
     }
 
     @Override
-    public Class<?> loadClass(String name) throws ClassNotFoundException {
+    public Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
         Matcher matcher = SHADED_PREFIXES_PATTERN.matcher(name);
         try {
             if (matcher.find()) {
@@ -78,7 +78,7 @@ public class ShadingClassLoader extends ClassLoader {
                 // so even if those elasticsearch classes are present on the classpath
                 // we first try to load our versions
                 try {
-                    return super.loadClass(replaced);
+                    return super.loadClass(replaced, resolve);
                 } catch (ClassNotFoundException e) {
                     // proceed with normal name
                 }
@@ -86,6 +86,6 @@ public class ShadingClassLoader extends ClassLoader {
         } catch (IllegalStateException e) {
             // ok, fall through
         }
-        return super.loadClass(name);
+        return super.loadClass(name, resolve);
     }
 }

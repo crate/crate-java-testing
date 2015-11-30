@@ -340,7 +340,8 @@ public class CrateTestServer extends ExternalResource implements TestCluster {
         System.out.println("Stopping crate server process...");
         if (crateProcess != null) {
             try {
-                crateProcess.destroyForcibly().waitFor();
+                crateProcess.destroy();
+                crateProcess.waitFor();
                 wipeDataDirectory();
                 wipeLogs();
             } catch (Exception e) {
