@@ -30,6 +30,8 @@ import io.crate.client.InternalCrateClient;
 import io.crate.shade.com.google.common.base.Joiner;
 import io.crate.shade.com.google.common.base.MoreObjects;
 import io.crate.shade.com.google.common.base.Preconditions;
+import io.crate.shade.org.elasticsearch.ElasticsearchTimeoutException;
+import io.crate.shade.org.elasticsearch.action.ActionFuture;
 import io.crate.shade.org.elasticsearch.client.transport.NoNodeAvailableException;
 import io.crate.shade.org.elasticsearch.client.transport.TransportClient;
 import io.crate.shade.org.elasticsearch.common.Strings;
@@ -58,6 +60,7 @@ public class CrateTestServer extends ExternalResource implements TestCluster {
 
     public static final TimeValue DEFAULT_TIMEOUT = TimeValue.timeValueSeconds(10);
     public static final String DEFAULT_WORKING_DIR = System.getProperty("user.dir");
+    public static final String CRATE_DIR = "/parts/crate";
 
     public final int httpPort;
     public final int transportPort;
@@ -223,6 +226,18 @@ public class CrateTestServer extends ExternalResource implements TestCluster {
         return crateClient.bulkSql(new SQLBulkRequest(statement, bulkArgs)).actionGet(timeout);
     }
 
+    public ActionFuture<SQLResponse> executeAsync(String statement) {
+        return executeAsync(statement, SQLRequest.EMPTY_ARGS);
+    }
+
+    public ActionFuture<SQLResponse> executeAsync(String statement, Object[] args) {
+        return crateClient.sql(new SQLRequest(statement, args));
+    }
+
+    public ActionFuture<SQLBulkResponse> executeAsync(String statement, Object[][] bulkArgs) {
+        return crateClient.bulkSql(new SQLBulkRequest(statement, bulkArgs));
+    }
+
     private CrateClient ensureCrateClient() {
         if (crateClient == null) {
             crateClient = new CrateClient(ImmutableSettings.builder()
@@ -306,7 +321,7 @@ public class CrateTestServer extends ExternalResource implements TestCluster {
     }
 
     private void downloadCrate() throws IOException {
-        File crateDir = new File(workingDir, "/parts/crate");
+        File crateDir = new File(workingDir, CRATE_DIR);
         if (crateDir.exists()) {
             return;
         }
@@ -395,7 +410,7 @@ public class CrateTestServer extends ExternalResource implements TestCluster {
             command
         );
         assert new File(workingDir).exists();
-        processBuilder.directory(new File(workingDir, "/parts/crate"));
+        processBuilder.directory(new File(workingDir, CRATE_DIR));
         processBuilder.redirectErrorStream(true);
         crateProcess = processBuilder.start();
 
@@ -451,13 +466,20 @@ public class CrateTestServer extends ExternalResource implements TestCluster {
         FutureTask<Boolean> task = new FutureTask<>(new Callable<Boolean>() {
             @Override
             public Boolean call() throws Exception {
-
+                int timeoutRetries = 3;
                 while (true) {
                     try {
                         crateClient.sql("select id from sys.cluster")
                                 .actionGet(timeoutMillis/10, TimeUnit.MILLISECONDS);
                         break;
                     } catch (NoNodeAvailableException e) {
+                       // carry on no matter what
+                    } catch (ElasticsearchTimeoutException e) {
+                        if (timeoutRetries == 0) {
+                            e.printStackTrace();
+                            return false;
+                        }
+                        timeoutRetries--;
                         // carry on
                     } catch (Exception e) {
                         e.printStackTrace();

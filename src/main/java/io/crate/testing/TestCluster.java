@@ -23,6 +23,7 @@ package io.crate.testing;
 
 import io.crate.action.sql.SQLBulkResponse;
 import io.crate.action.sql.SQLResponse;
+import io.crate.shade.org.elasticsearch.action.ActionFuture;
 import io.crate.shade.org.elasticsearch.common.unit.TimeValue;
 
 public interface TestCluster {
@@ -38,6 +39,12 @@ public interface TestCluster {
     SQLBulkResponse execute(String statement, Object[][] bulkArgs);
 
     SQLBulkResponse execute(String statement, Object[][] bulkArgs, TimeValue timeout);
+
+    ActionFuture<SQLResponse> executeAsync(String statement);
+
+    ActionFuture<SQLResponse> executeAsync(String statement, Object[] args);
+
+    ActionFuture<SQLBulkResponse> executeAsync(String statement, Object[][] bulkArgs);
 
     void ensureYellow();
 

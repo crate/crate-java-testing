@@ -26,6 +26,7 @@ import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
 import io.crate.shade.com.google.common.base.Preconditions;
 import io.crate.shade.com.google.common.collect.ImmutableList;
+import io.crate.shade.org.elasticsearch.action.ActionFuture;
 import io.crate.shade.org.elasticsearch.client.transport.NoNodeAvailableException;
 import io.crate.shade.org.elasticsearch.common.settings.ImmutableSettings;
 import io.crate.shade.org.elasticsearch.common.settings.Settings;
@@ -123,6 +124,7 @@ public class CrateTestCluster extends ExternalResource implements TestCluster {
                 httpPorts[i] = Utils.randomAvailablePort();
             }
             CrateTestServer[] servers = new CrateTestServer[numberOfNodes];
+
             String[] unicastHosts = getUnicastHosts(hostAddress, transportPorts);
             for (int i = 0; i < numberOfNodes; i++) {
                 servers[i] = CrateTestServer.builder()
@@ -160,7 +162,7 @@ public class CrateTestCluster extends ExternalResource implements TestCluster {
 
     private static String[] getUnicastHosts(String hostAddress, int[] transportPorts) {
         String[] result = new String[transportPorts.length];
-        for (int i=0; i < transportPorts.length;i++) {
+        for (int i=0; i < transportPorts.length; i++) {
             result[i] = String.format(Locale.ENGLISH, "%s:%d", hostAddress, transportPorts[i]);
         }
         return result;
@@ -256,6 +258,18 @@ public class CrateTestCluster extends ExternalResource implements TestCluster {
 
     public SQLBulkResponse execute(String statement, Object[][] bulkArgs, TimeValue timeout) {
         return randomServer().execute(statement, bulkArgs, timeout);
+    }
+
+    public ActionFuture<SQLResponse> executeAsync(String statement) {
+        return randomServer().executeAsync(statement);
+    }
+
+    public ActionFuture<SQLResponse> executeAsync(String statement, Object[] args) {
+        return randomServer().executeAsync(statement, args);
+    }
+
+    public ActionFuture<SQLBulkResponse> executeAsync(String statement, Object[][] bulkArgs) {
+        return randomServer().executeAsync(statement, bulkArgs);
     }
 
     public void ensureYellow() {

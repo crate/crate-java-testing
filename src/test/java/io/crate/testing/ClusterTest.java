@@ -21,6 +21,8 @@
 
 package io.crate.testing;
 
+import com.carrotsearch.randomizedtesting.RandomizedTest;
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import io.crate.action.sql.SQLResponse;
 import io.crate.shade.org.elasticsearch.common.settings.ImmutableSettings;
 import org.junit.Rule;
@@ -30,10 +32,10 @@ import org.junit.rules.TemporaryFolder;
 
 import java.util.Collection;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 
-public class ClusterTest {
+@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
+public class ClusterTest extends RandomizedTest {
 
     public static final String CLUSTER_NAME = "cluster";
 
