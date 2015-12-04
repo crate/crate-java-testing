@@ -55,11 +55,11 @@ public class ClusterTest extends RandomizedTest {
                         .put("stats.enabled", true)
                         .build())
                 .build();
-        Collection<CrateTestServer> servers = cluster.servers();
-        assertThat(servers.size(), is(3));
 
         try {
             cluster.before();
+            Collection<CrateTestServer> servers = cluster.servers();
+            assertThat(servers.size(), is(3));
             for (CrateTestServer server : servers) {
                 SQLResponse response = server.execute("select version['number'] from sys.nodes");
                 assertThat(response.rowCount(), is(3L));
@@ -94,7 +94,7 @@ public class ClusterTest extends RandomizedTest {
     @Test
     public void testNoNodes() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("no servers given");
+        expectedException.expectMessage("invalid number of nodes: 0");
         CrateTestCluster.builder(CLUSTER_NAME)
                 .workingDir(tempFolder.getRoot().getAbsolutePath())
                 .numberOfNodes(0)

@@ -44,12 +44,24 @@ import java.util.concurrent.*;
 
 public class CrateTestCluster extends ExternalResource implements TestCluster {
 
-    private final CrateTestServer[] servers;
+    private final int numberOfNodes;
+    private final String clusterName;
+    private final String workingDir;
+    private final URL downloadURL;
+    private final Settings settings;
+    private final String hostAddress;
+
+    private volatile CrateTestServer[] servers;
     private ExecutorService executor;
 
-    private CrateTestCluster(CrateTestServer ... servers) {
-        Preconditions.checkArgument(servers.length > 0, "no servers given");
-        this.servers = servers;
+    private CrateTestCluster(int numberOfNodes, String clusterName, String workingDir, URL downloadURL, Settings settings, String hostAddress) {
+        this.numberOfNodes = numberOfNodes;
+        this.clusterName = clusterName;
+        this.workingDir = workingDir;
+        this.downloadURL = downloadURL;
+        this.settings = settings;
+        this.hostAddress = hostAddress;
+        Preconditions.checkArgument(numberOfNodes > 0, "invalid number of nodes: "+ numberOfNodes);
         executor = Executors.newFixedThreadPool(1);
     }
 
@@ -116,34 +128,9 @@ public class CrateTestCluster extends ExternalResource implements TestCluster {
             return this;
         }
 
-        private CrateTestServer[] buildServers() {
-            int transportPorts[] = new int[numberOfNodes];
-            int httpPorts[] = new int[numberOfNodes];
-            for (int i = 0; i<numberOfNodes; i++) {
-                transportPorts[i] = Utils.randomAvailablePort();
-                httpPorts[i] = Utils.randomAvailablePort();
-            }
-            CrateTestServer[] servers = new CrateTestServer[numberOfNodes];
-
-            String[] unicastHosts = getUnicastHosts(hostAddress, transportPorts);
-            for (int i = 0; i < numberOfNodes; i++) {
-                servers[i] = CrateTestServer.builder()
-                        .clusterName(clusterName)
-                        .fromURL(downloadURL)
-                        .workingDir(workingDir)
-                        .host(hostAddress)
-                        .httpPort(httpPorts[i])
-                        .transportPort(transportPorts[i])
-                        .settings(settings)
-                        .addUnicastHosts(unicastHosts)
-                        .build();
-            }
-            return servers;
-        }
-
         public CrateTestCluster build() {
             Preconditions.checkArgument(downloadURL != null, "no crate version, file or download url given");
-            return new CrateTestCluster(buildServers());
+            return new CrateTestCluster(numberOfNodes, clusterName, workingDir, downloadURL, settings, hostAddress);
         }
     }
 
@@ -160,6 +147,31 @@ public class CrateTestCluster extends ExternalResource implements TestCluster {
                 .build();
     }
 
+    private CrateTestServer[] buildServers() {
+        int transportPorts[] = new int[numberOfNodes];
+        int httpPorts[] = new int[numberOfNodes];
+        for (int i = 0; i<numberOfNodes; i++) {
+            transportPorts[i] = Utils.randomAvailablePort();
+            httpPorts[i] = Utils.randomAvailablePort();
+        }
+        CrateTestServer[] servers = new CrateTestServer[numberOfNodes];
+
+        String[] unicastHosts = getUnicastHosts(hostAddress, transportPorts);
+        for (int i = 0; i < numberOfNodes; i++) {
+            servers[i] = CrateTestServer.builder()
+                    .clusterName(clusterName)
+                    .fromURL(downloadURL)
+                    .workingDir(workingDir)
+                    .host(hostAddress)
+                    .httpPort(httpPorts[i])
+                    .transportPort(transportPorts[i])
+                    .settings(settings)
+                    .addUnicastHosts(unicastHosts)
+                    .build();
+        }
+        return servers;
+    }
+
     private static String[] getUnicastHosts(String hostAddress, int[] transportPorts) {
         String[] result = new String[transportPorts.length];
         for (int i=0; i < transportPorts.length; i++) {
@@ -169,7 +181,8 @@ public class CrateTestCluster extends ExternalResource implements TestCluster {
     }
 
     private boolean waitUntilClusterIsReady(final int timeoutMillis) {
-        final long numNodes = servers.length;
+        final CrateTestServer[] localServers = serversSafe();
+        final long numNodes = localServers.length;
         FutureTask<Boolean> task = new FutureTask<>(new Callable<Boolean>() {
             @Override
             public Boolean call() throws Exception {
@@ -177,7 +190,7 @@ public class CrateTestCluster extends ExternalResource implements TestCluster {
                 while (true) {
                     try {
                         long minNumNodes = Long.MAX_VALUE;
-                        for (CrateTestServer server : servers) {
+                        for (CrateTestServer server : localServers) {
                             SQLResponse response = server.execute("select id from sys.nodes", TimeValue.timeValueMillis(timeoutMillis/10));
                             minNumNodes = Math.min(response.rowCount(), minNumNodes);
                         }
@@ -207,6 +220,7 @@ public class CrateTestCluster extends ExternalResource implements TestCluster {
 
     @Override
     protected void before() throws Throwable {
+        servers = buildServers();
         for (CrateTestServer server : servers) {
             try {
                 server.before();
@@ -223,17 +237,27 @@ public class CrateTestCluster extends ExternalResource implements TestCluster {
 
     @Override
     protected void after() {
-        for (CrateTestServer server : servers) {
+        CrateTestServer[] localServers = serversSafe();
+        for (CrateTestServer server : localServers) {
             server.after();
         }
+        servers = null;
+    }
+
+    private CrateTestServer[] serversSafe() {
+        if (servers == null) {
+            throw new IllegalStateException("servers not started yet");
+        }
+        return servers;
     }
 
     public CrateTestServer randomServer() {
-        return servers[ThreadLocalRandom.current().nextInt(servers.length)];
+        CrateTestServer[] localServers = serversSafe();
+        return localServers[ThreadLocalRandom.current().nextInt(localServers.length)];
     }
 
     public Collection<CrateTestServer> servers() {
-        return ImmutableList.<CrateTestServer>builder().add(servers).build();
+        return ImmutableList.<CrateTestServer>builder().add(serversSafe()).build();
     }
 
     public SQLResponse execute(String statement) {
