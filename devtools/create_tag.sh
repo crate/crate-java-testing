@@ -52,8 +52,6 @@ then
    exit -1
 fi
 
-# install locally so we can get the version
-./gradlew installDist
 # get the version
 if [ "${VERSION}x" == "x" ]
 then
