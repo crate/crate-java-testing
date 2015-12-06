@@ -421,7 +421,7 @@ public class CrateTestServer extends ExternalResource implements TestCluster {
                 try {
                     Process localProcess = crateProcess;
                     if (localProcess != null) {
-                        localProcess.destroyForcibly();
+                        localProcess.destroy();
                     }
                 } catch (Throwable t) {
                     // ignore
