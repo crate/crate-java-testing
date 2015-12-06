@@ -1,0 +1,43 @@
+==============================
+Changes for Crate-Java-Testing
+==============================
+
+Unreleased
+==========
+
+ * use new servers for every cluster (re-)start
+
+ * add executeAsync methods
+
+ * fix ShadingClassLoader usage for internal CrateClient
+
+ * fix reusing a static cluster instance
+
+2015/11/27 0.0.5
+================
+
+ * add a shading classloader that handles loading shaded classes
+
+ * fix usage of transportclient for ensureGreen and ensureYellow
+
+2015/11/27 0.0.4
+================
+
+ * fix waiting for CrateTestCluster to become ready
+
+2015/11/26 0.0.3
+================
+
+ * overhauled CrateTestServer creation and added CrateTestCluster
+
+2015/11/17 0.0.2
+================
+
+ * added support for execute bulkRequests
+
+ * now using shaded crateClient to fix dependency Hell
+
+2015/11/17 0.0.1
+================
+
+ * initial release of CrateTestServer
