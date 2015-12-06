@@ -2,8 +2,8 @@
 Changes for Crate-Java-Testing
 ==============================
 
-Unreleased
-==========
+2015/12/06 0.1.0
+================
 
  * use new servers for every cluster (re-)start
 
