@@ -1,0 +1,12 @@
+language: java
+jdk:
+      - openjdk7
+      - oraclejdk7
+      - oraclejdk8
+
+sudo: false
+
+script: ./gradlew test -s
+
+notifications:
+  email: false
