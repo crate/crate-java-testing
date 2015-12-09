@@ -2,6 +2,11 @@
 Changes for Crate-Java-Testing
 ==============================
 
+2015/12/09 0.1.1
+================
+
+ * use java 7 source and target compatibility
+
 2015/12/06 0.1.0
 ================
 
