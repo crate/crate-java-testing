@@ -2,8 +2,8 @@
 Changes for Crate-Java-Testing
 ==============================
 
-Unreleased
-==========
+2015/12/16 0.2.0
+================
 
  * download crate distributions from the same source
    to their own downloadfolder
