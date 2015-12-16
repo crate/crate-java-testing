@@ -41,9 +41,8 @@ public class BuilderTest {
 
     @Test
     public void testBuilder() throws Throwable {
-        CrateTestServer testServer = CrateTestServer.builder()
+        CrateTestServer testServer = CrateTestServer.fromVersion("0.52.0")
                 .clusterName("mycluster")
-                .fromVersion("0.52.0")
                 .workingDir(tempFolder.getRoot().getAbsolutePath())
                 .host("127.0.0.1")
                 .httpPort(12345)
@@ -79,7 +78,7 @@ public class BuilderTest {
     @Test
     public void testNoURL() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("no crate version, file or download url given");
+        expectedException.expectMessage("no download source given (version, git-ref, url, file)");
         CrateTestServer.builder()
                 .clusterName("mycluster")
                 .workingDir(tempFolder.getRoot().getAbsolutePath())

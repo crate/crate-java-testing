@@ -31,13 +31,11 @@ import io.crate.shade.org.elasticsearch.client.transport.NoNodeAvailableExceptio
 import io.crate.shade.org.elasticsearch.common.settings.ImmutableSettings;
 import io.crate.shade.org.elasticsearch.common.settings.Settings;
 import io.crate.shade.org.elasticsearch.common.unit.TimeValue;
+import io.crate.testing.download.DownloadSource;
+import io.crate.testing.download.DownloadSources;
 import org.junit.rules.ExternalResource;
 
 import java.net.InetAddress;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Locale;
 import java.util.concurrent.*;
@@ -47,18 +45,18 @@ public class CrateTestCluster extends ExternalResource implements TestCluster {
     private final int numberOfNodes;
     private final String clusterName;
     private final String workingDir;
-    private final URL downloadURL;
+    private final DownloadSource downloadSource;
     private final Settings settings;
     private final String hostAddress;
 
     private volatile CrateTestServer[] servers;
     private ExecutorService executor;
 
-    private CrateTestCluster(int numberOfNodes, String clusterName, String workingDir, URL downloadURL, Settings settings, String hostAddress) {
+    private CrateTestCluster(int numberOfNodes, String clusterName, String workingDir, DownloadSource downloadSource, Settings settings, String hostAddress) {
         this.numberOfNodes = numberOfNodes;
         this.clusterName = clusterName;
         this.workingDir = workingDir;
-        this.downloadURL = downloadURL;
+        this.downloadSource = downloadSource;
         this.settings = settings;
         this.hostAddress = hostAddress;
         Preconditions.checkArgument(numberOfNodes > 0, "invalid number of nodes: "+ numberOfNodes);
@@ -67,44 +65,33 @@ public class CrateTestCluster extends ExternalResource implements TestCluster {
 
     public static class Builder {
 
+        private final DownloadSource downloadSource;
+
         private int numberOfNodes = 2;
         private String clusterName = "TestingCluster";
         private String workingDir = CrateTestServer.DEFAULT_WORKING_DIR;
-        private URL downloadURL;
         private Settings settings = ImmutableSettings.EMPTY;
         private String hostAddress = InetAddress.getLoopbackAddress().getHostAddress();
 
-        public Builder(String clusterName) {
+        private Builder(DownloadSource downloadSource) {
+            this.downloadSource = downloadSource;
+        }
+
+        public static Builder fromURL(String url) {
+            return new Builder(DownloadSources.URL(url));
+        }
+
+
+        public static Builder fromVersion(String crateVersion) {
+            return new Builder(DownloadSources.VERSION(crateVersion));
+        }
+
+        public static Builder fromFile(String pathToTarGzCrateDistribution) {
+            return new Builder(DownloadSources.FILE(pathToTarGzCrateDistribution));
+        }
+
+        public Builder clusterName(String clusterName) {
             this.clusterName = clusterName;
-        }
-
-        public Builder fromURL(String url) {
-            try {
-                this.fromURL(new URL(url));
-            } catch (MalformedURLException e) {
-                throw new RuntimeException("invalid url", e);
-            }
-
-            return this;
-        }
-
-        public Builder fromURL(URL url) {
-            this.downloadURL = url;
-            return this;
-        }
-
-        public Builder fromVersion(String crateVersion) {
-            this.downloadURL = Utils.downLoadURL(crateVersion);
-            return this;
-        }
-
-        public Builder fromFile(String pathToTarGzCrateDistribution) {
-            Path tarGzPath = Paths.get(pathToTarGzCrateDistribution);
-            try {
-                this.downloadURL = tarGzPath.toAbsolutePath().toUri().toURL();
-            } catch (MalformedURLException e) {
-                throw new RuntimeException("invalid file path", e);
-            }
             return this;
         }
 
@@ -129,20 +116,28 @@ public class CrateTestCluster extends ExternalResource implements TestCluster {
         }
 
         public CrateTestCluster build() {
-            Preconditions.checkArgument(downloadURL != null, "no crate version, file or download url given");
-            return new CrateTestCluster(numberOfNodes, clusterName, workingDir, downloadURL, settings, hostAddress);
+            Preconditions.checkArgument(clusterName != null, "no cluster name given");
+            return new CrateTestCluster(numberOfNodes, clusterName, workingDir, downloadSource, settings, hostAddress);
         }
     }
 
-    public static Builder builder(String clusterName) {
-        return new Builder(clusterName);
+    public static Builder fromURL(String downloadUrl) {
+        return Builder.fromURL(downloadUrl);
     }
 
-    public static CrateTestCluster cluster(String clusterName,
+    public static Builder fromFile(String pathToTarGzCrateDistribution) {
+        return Builder.fromFile(pathToTarGzCrateDistribution);
+    }
+
+    public static Builder fromVersion(String crateVersion) {
+        return Builder.fromVersion(crateVersion);
+    }
+
+    public static CrateTestCluster  cluster(String clusterName,
                                            String crateVersion,
                                            int numberOfNodes) {
-        return CrateTestCluster.builder(clusterName)
-                .fromVersion(crateVersion)
+        return Builder.fromVersion(crateVersion)
+                .clusterName(clusterName)
                 .numberOfNodes(numberOfNodes)
                 .build();
     }
@@ -160,7 +155,7 @@ public class CrateTestCluster extends ExternalResource implements TestCluster {
         for (int i = 0; i < numberOfNodes; i++) {
             servers[i] = CrateTestServer.builder()
                     .clusterName(clusterName)
-                    .fromURL(downloadURL)
+                    .fromDownloadSource(downloadSource)
                     .workingDir(workingDir)
                     .host(hostAddress)
                     .httpPort(httpPorts[i])

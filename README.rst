@@ -62,18 +62,20 @@ Using Gradle:
         ...
     }
 
-Alternatively you can follow the instructions on the Bintray repository overview page by clicking the "Set me up!" button.
+Alternatively you can follow the instructions on the Bintray repository
+overview page by clicking the "Set me up!" button.
 
 
 CrateTestServer Class
 =====================
 
-The Crate Test Server class is ``io.crate.testing.CrateTestServer``. ``CrateTestServer`` extends
+The Crate Test Server class is ``io.crate.testing.CrateTestServer``.
+``CrateTestServer`` extends
 from ``org.junit.rules.ExternalResources``.
 Once it's initalized as a junit ``ClassRule`` it will start Crate at the beginning of the
-test run. If crate is not already downloaded, it will be downloaded and extracted. It's required
-to provide at least a ``cluster name`` and the crate version as a string. If the
-``cluster name`` is null, a cluster name will be generated.
+test run. If crate is not already downloaded, it will be downloaded and extracted.
+It's required to provide at least a ``cluster name`` and the crate version as
+ a string. If the ``cluster name`` is null, a cluster name will be generated.
 
 Example usage in a java test::
 
@@ -90,34 +92,60 @@ Example usage in a java test::
         assertThat(response.rowCount(), is(1L));
     }
 
-By using the following constructor it's also possible to provide the ``http port``,
-the ``transport port``, the ``workingDirectory``, the ``host`` and a list of 
-``unicast hosts``::
+It is recommended to use the static factory methods ``fromURL``,
+``fromFile`` or ``fromVersion`` on the ``CrateTestServer`` itself.
+This makes it possible to configure the server in many ways::
 
-    public CrateTestServer(@Nullable String clusterName, String crateVersion, int httpPort, int transportPort,
-                           String workingDir, String host, String ... unicastHosts) {
-                           ...
-                           }
+    @ClassRule
+    public static final CrateTestServer TEST_SERVER = CrateTestServer.fromVersion("0.52.4")
+                                                                     .clusterName("with-builder")
+                                                                     .transportPort(5200)
+                                                                     .httpPort(5300)
+                                                                     .build();
 
 Setting up a Cluster
 ====================
 
 It's also possible to set up a crate cluster by using the CrateTestCluster class.
-A ``cluster name``, the crate version and the number of nodes must be provided.::
+Using the static ``.cluster(...)`` method, a ``cluster name``, the crate version
+and the number of nodes must be provided::
 
     @ClassRule
     public static CrateTestCluster cluster = CrateTestCluster.cluster("myCluster", "0.52.2", 3)
 
-CrateTestCluster has the same API for executing SQL statements as the CrateTestServer.
+As an alternative the static factory methods ``fromURL``, ``fromFile`` or
+``fromVersion`` are available.
 
-Issue an SQL Request
-====================
+The ``CrateTestCluster`` has the same API for executing SQL statements as the
+CrateTestServer.
 
-To issue an sql request, the ``CrateTestServer`` provides the following methods::
+Issue SQL Requests
+==================
 
-       public SQLResponse execute(String statement)
+``CrateTestServer`` and ``CrateTestCluster`` both implement the interface ``TestCluster``
+which provided the following methods::
 
-       public SQLResponse execute(String statement, Object[] args)
+    SQLResponse execute(String statement);
+
+    SQLResponse execute(String statement, TimeValue timeout);
+
+    SQLResponse execute(String statement, Object[] args);
+
+    SQLResponse execute(String statement, Object[] args, TimeValue timeout);
+
+    SQLBulkResponse execute(String statement, Object[][] bulkArgs);
+
+    SQLBulkResponse execute(String statement, Object[][] bulkArgs, TimeValue timeout);
+
+    ActionFuture<SQLResponse> executeAsync(String statement);
+
+    ActionFuture<SQLResponse> executeAsync(String statement, Object[] args);
+
+    ActionFuture<SQLBulkResponse> executeAsync(String statement, Object[][] bulkArgs);
+
+    void ensureYellow();
+
+    void ensureGreen();
 
 
 .. _`Bintray`: https://bintray.com/crate/crate/

@@ -19,29 +19,25 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.testing;
+package io.crate.testing.download;
 
-import java.io.IOException;
-import java.net.ServerSocket;
-import java.util.Locale;
+import java.io.File;
+import java.net.MalformedURLException;
+import java.net.URL;
 
-class Utils {
+public interface DownloadSource {
 
     /**
-     * @return a random available port for binding
+     * return the folder name to store the crate distribution
+     * from this DownloadSource into.
+     *
+     * @return the absolute folder to store the crate distribution into
      */
-    static int randomAvailablePort() {
-        try {
-            ServerSocket socket = new  ServerSocket(0);
-            int port = socket.getLocalPort();
-            socket.close();
-            return port;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
+    File folder(File containingFolder);
 
-    static void log(String message, Object ... params) {
-        System.out.println(String.format(Locale.ENGLISH, message, params));
-    }
+    /**
+     * Return the URL to download a crate distribution from.
+     * @return the complete download URL
+     */
+    URL downloadUrl() throws MalformedURLException;
 }

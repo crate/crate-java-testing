@@ -19,29 +19,22 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.testing;
+package io.crate.testing.download;
 
-import java.io.IOException;
-import java.net.ServerSocket;
-import java.util.Locale;
+public class DownloadSources {
 
-class Utils {
-
-    /**
-     * @return a random available port for binding
-     */
-    static int randomAvailablePort() {
-        try {
-            ServerSocket socket = new  ServerSocket(0);
-            int port = socket.getLocalPort();
-            socket.close();
-            return port;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    private DownloadSources() {
     }
 
-    static void log(String message, Object ... params) {
-        System.out.println(String.format(Locale.ENGLISH, message, params));
+    public static DownloadSource URL(String stringURL) {
+        return new UrlDownloadSource(stringURL);
+    }
+
+    public static DownloadSource FILE(String pathToTarGzDistribution) {
+        return new FileDownloadSource(pathToTarGzDistribution);
+    }
+
+    public static DownloadSource VERSION(String crateVersion) {
+        return new VersionDownloadSource(crateVersion);
     }
 }

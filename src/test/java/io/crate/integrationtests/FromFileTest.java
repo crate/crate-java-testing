@@ -35,8 +35,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 public class FromFileTest {
 
     static {
-        File downloadFolder = new File(CrateTestServer.DEFAULT_WORKING_DIR, "/parts/crate");
-        FileSystemUtils.deleteRecursively(downloadFolder, true);
+        File downloadFolder = new File(CrateTestServer.DEFAULT_WORKING_DIR, "/parts");
+        FileSystemUtils.deleteRecursively(downloadFolder, false);
     }
 
     private static final String CLUSTER_NAME = "from-file";

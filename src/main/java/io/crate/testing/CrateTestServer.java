@@ -39,6 +39,8 @@ import io.crate.shade.org.elasticsearch.common.settings.ImmutableSettings;
 import io.crate.shade.org.elasticsearch.common.settings.Settings;
 import io.crate.shade.org.elasticsearch.common.transport.InetSocketTransportAddress;
 import io.crate.shade.org.elasticsearch.common.unit.TimeValue;
+import io.crate.testing.download.DownloadSource;
+import io.crate.testing.download.DownloadSources;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
@@ -47,7 +49,6 @@ import org.junit.rules.ExternalResource;
 import java.io.*;
 import java.lang.reflect.Field;
 import java.net.InetAddress;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
@@ -60,7 +61,7 @@ public class CrateTestServer extends ExternalResource implements TestCluster {
 
     public static final TimeValue DEFAULT_TIMEOUT = TimeValue.timeValueSeconds(10);
     public static final String DEFAULT_WORKING_DIR = System.getProperty("user.dir");
-    public static final String CRATE_DIR = "/parts/crate";
+    public static final String CRATE_INSTANCES_DIR = "/parts";
 
     public final int httpPort;
     public final int transportPort;
@@ -68,7 +69,7 @@ public class CrateTestServer extends ExternalResource implements TestCluster {
     private final String workingDir;
     private final String clusterName;
     private final String[] unicastHosts;
-    private final URL downloadURL;
+    private final DownloadSource downloadSource;
     private final Settings nodeSettings;
 
     private ExecutorService executor;
@@ -81,10 +82,24 @@ public class CrateTestServer extends ExternalResource implements TestCluster {
         private int httpPort = Utils.randomAvailablePort();
         private int transportPort = Utils.randomAvailablePort();
         private String workingDir = DEFAULT_WORKING_DIR;
-        private String clusterName = "Testing" + transportPort;
+        private String clusterName = "Testing-" + transportPort;
         private List<String> unicastHosts = new ArrayList<>();
-        private URL downloadURL = null;
+        private DownloadSource downloadSource = null;
         private Settings nodeSettings = ImmutableSettings.EMPTY;
+
+        private Builder() {}
+
+        public static Builder fromURL(String url) {
+            return new Builder().fromDownloadSource(DownloadSources.URL(url));
+        }
+
+        public static Builder fromVersion(String crateVersion) {
+            return new Builder().fromDownloadSource(DownloadSources.VERSION(crateVersion));
+        }
+
+        public static Builder fromFile(String pathToTarGzCrateDistribution) {
+            return new Builder().fromDownloadSource(DownloadSources.FILE(pathToTarGzCrateDistribution));
+        }
 
         public Builder host(String host) {
             this.host = host;
@@ -116,33 +131,8 @@ public class CrateTestServer extends ExternalResource implements TestCluster {
             return this;
         }
 
-        public Builder fromURL(String url) {
-            try {
-                this.fromURL(new URL(url));
-            } catch (MalformedURLException e) {
-                throw new RuntimeException("invalid url", e);
-            }
-
-            return this;
-        }
-
-        public Builder fromURL(URL url) {
-            this.downloadURL = url;
-            return this;
-        }
-
-        public Builder fromVersion(String crateVersion) {
-            this.downloadURL = Utils.downLoadURL(crateVersion);
-            return this;
-        }
-
-        public Builder fromFile(String pathToTarGzCrateDistribution) {
-            Path tarGzPath = Paths.get(pathToTarGzCrateDistribution);
-            try {
-                this.downloadURL = tarGzPath.toAbsolutePath().toUri().toURL();
-            } catch (MalformedURLException e) {
-                throw new RuntimeException("invalid file path", e);
-            }
+        Builder fromDownloadSource(DownloadSource downloadSource) {
+            this.downloadSource = downloadSource;
             return this;
         }
 
@@ -152,30 +142,50 @@ public class CrateTestServer extends ExternalResource implements TestCluster {
         }
 
         public CrateTestServer build() {
-            Preconditions.checkArgument(downloadURL != null, "no crate version, file or download url given");
-            return new CrateTestServer(clusterName, downloadURL, httpPort, transportPort, workingDir, host, nodeSettings, unicastHosts.toArray(new String[unicastHosts.size()]));
+            Preconditions.checkArgument(downloadSource != null, "no download source given (version, git-ref, url, file)");
+            return new CrateTestServer(clusterName, downloadSource, httpPort, transportPort, workingDir, host, nodeSettings, unicastHosts.toArray(new String[unicastHosts.size()]));
         }
     }
 
+    /**
+     * @deprecated use {@link #fromURL(String)}
+     */
+    @Deprecated()
     public static Builder builder() {
         return new Builder();
     }
 
-    public static CrateTestServer fromUrl(String url, String clusterName) {
-        return CrateTestServer.builder().clusterName(clusterName).fromURL(url).build();
+    public static Builder fromURL(String url) {
+        return Builder.fromURL(url);
+    }
+
+    public static Builder fromFile(String pathToTarGzCrateDistribution) {
+        return Builder.fromFile(pathToTarGzCrateDistribution);
+    }
+
+    public static Builder fromVersion(String version) {
+        return Builder.fromVersion(version);
+    }
+
+    public static CrateTestServer fromURL(String url, String clusterName) {
+        return fromURL(url).clusterName(clusterName).build();
     }
 
     public static CrateTestServer fromFile(String pathToTarGzCrateDistribution, String clusterName) {
-        return CrateTestServer.builder().clusterName(clusterName).fromFile(pathToTarGzCrateDistribution).build();
+        return fromFile(pathToTarGzCrateDistribution).clusterName(clusterName).build();
     }
 
     public CrateTestServer(String clusterName, String crateVersion) {
-        this(clusterName, Utils.downLoadURL(crateVersion));
+        this(clusterName, DownloadSources.VERSION(crateVersion));
     }
 
     public CrateTestServer(String clusterName, URL downloadURL) {
+       this(clusterName, DownloadSources.URL(downloadURL.toString()));
+    }
+
+    public CrateTestServer(String clusterName, DownloadSource downloadSource) {
         this(clusterName,
-                downloadURL,
+                downloadSource,
                 Utils.randomAvailablePort(),
                 Utils.randomAvailablePort(),
                 DEFAULT_WORKING_DIR,
@@ -185,15 +195,15 @@ public class CrateTestServer extends ExternalResource implements TestCluster {
     }
 
     private CrateTestServer(String clusterName,
-                           URL downloadURL,
+                           DownloadSource downloadSource,
                            int httpPort,
                            int transportPort,
                            String workingDir,
                            String host,
                            Settings settings,
                            String ... unicastHosts) {
-        this.clusterName = MoreObjects.firstNonNull(clusterName, "Testing" + transportPort);
-        this.downloadURL = downloadURL;
+        this.clusterName = MoreObjects.firstNonNull(clusterName, "Testing-" + transportPort);
+        this.downloadSource = downloadSource;
         this.crateHost = host;
         this.httpPort = httpPort;
         this.transportPort = transportPort;
@@ -295,8 +305,18 @@ public class CrateTestServer extends ExternalResource implements TestCluster {
         TarArchiveEntry tarEntry = tarIn.getNextTarEntry();
         // tarIn is a TarArchiveInputStream
         while (tarEntry != null) {// create a file with the same name as the tarEntry
-            File destPath = new File(dest, tarEntry.getName().replaceFirst("crate-(.*?)/", ""));
-            System.out.println("extract: " + destPath.getCanonicalPath());
+            Path entryPath = Paths.get(tarEntry.getName());
+
+            if (entryPath.getNameCount() == 1) {
+                // strip root folder
+                tarEntry = tarIn.getNextTarEntry();
+                continue;
+            }
+
+            Path strippedPath = entryPath.subpath(1, entryPath.getNameCount());
+            File destPath = new File(dest, strippedPath.toString());
+            Utils.log("extract: %s", destPath.getCanonicalPath());
+
             if (tarEntry.isDirectory()) {
                 destPath.mkdirs();
             } else {
@@ -321,14 +341,15 @@ public class CrateTestServer extends ExternalResource implements TestCluster {
     }
 
     private void downloadCrate() throws IOException {
-        File crateDir = new File(workingDir, CRATE_DIR);
+        File crateDir = downloadSource.folder(new File(workingDir, CRATE_INSTANCES_DIR));
         if (crateDir.exists()) {
+            Utils.log("No need to download crate. already downloaded %s to %s", downloadSource, crateDir);
             return;
         }
         Path downloadLocation = Files.createTempDirectory("crate-download");
-        System.out.println("Downloading Crate to: "+downloadLocation);
+        Utils.log("Downloading Crate %s to: %s", downloadSource, crateDir);
 
-        try (InputStream in = downloadURL.openStream()) {
+        try (InputStream in = downloadSource.downloadUrl().openStream()) {
             Files.copy(in, downloadLocation, StandardCopyOption.REPLACE_EXISTING);
             uncompressTarGZ(downloadLocation.toFile(), crateDir);
         }
@@ -340,7 +361,7 @@ public class CrateTestServer extends ExternalResource implements TestCluster {
     @Override
     protected void before() throws Throwable {
         downloadCrate();
-        System.out.println("Starting crate server process...");
+        Utils.log("Starting crate server process...");
         executor = Executors.newFixedThreadPool(2); // new threadpool for new process instance
         crateClient = ensureCrateClient();
         startCrateAsDaemon();
@@ -352,7 +373,7 @@ public class CrateTestServer extends ExternalResource implements TestCluster {
 
     @Override
     protected void after() {
-        System.out.println("Stopping crate server process...");
+        Utils.log("Stopping crate server process...");
         if (crateProcess != null) {
             try {
                 crateProcess.destroy();
@@ -410,7 +431,7 @@ public class CrateTestServer extends ExternalResource implements TestCluster {
             command
         );
         assert new File(workingDir).exists();
-        processBuilder.directory(new File(workingDir, CRATE_DIR));
+        processBuilder.directory(downloadSource.folder(new File(workingDir, CRATE_INSTANCES_DIR)));
         processBuilder.redirectErrorStream(true);
         crateProcess = processBuilder.start();
 

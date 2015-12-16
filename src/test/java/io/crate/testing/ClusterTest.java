@@ -47,9 +47,9 @@ public class ClusterTest extends RandomizedTest {
 
     @Test
     public void testClusterBuilder() throws Throwable {
-        CrateTestCluster cluster = CrateTestCluster.builder(CLUSTER_NAME)
+        CrateTestCluster cluster = CrateTestCluster.fromVersion("0.53.0")
+                .clusterName(CLUSTER_NAME)
                 .workingDir(tempFolder.getRoot().getAbsolutePath())
-                .fromVersion("0.53.0")
                 .numberOfNodes(3)
                 .settings(ImmutableSettings.builder()
                         .put("stats.enabled", true)
@@ -78,27 +78,16 @@ public class ClusterTest extends RandomizedTest {
         }
     }
 
-    @Test
-    public void testNoURL() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("no crate version, file or download url given");
-        CrateTestCluster.builder(CLUSTER_NAME)
-                .workingDir(tempFolder.getRoot().getAbsolutePath())
-                .numberOfNodes(3)
-                .settings(ImmutableSettings.builder()
-                        .put("stats.enabled", true)
-                        .build())
-                .build();
-    }
 
     @Test
     public void testNoNodes() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("invalid number of nodes: 0");
-        CrateTestCluster.builder(CLUSTER_NAME)
+        CrateTestCluster.fromVersion("0.53.0")
+                .clusterName(CLUSTER_NAME)
                 .workingDir(tempFolder.getRoot().getAbsolutePath())
                 .numberOfNodes(0)
-                .fromVersion("0.53.0")
+
                 .settings(ImmutableSettings.builder()
                         .put("stats.enabled", true)
                         .build())

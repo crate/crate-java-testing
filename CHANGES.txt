@@ -2,6 +2,15 @@
 Changes for Crate-Java-Testing
 ==============================
 
+Unreleased
+==========
+
+ * download crate distributions from the same source
+   to their own downloadfolder
+
+ * deprecated ``.builder()`` methods on CrateTestServer and CrateTestCluster.
+   use ``fromURL``, ``fromVersion`` or ``fromFile`` instead.
+
 2015/12/09 0.1.1
 ================
 

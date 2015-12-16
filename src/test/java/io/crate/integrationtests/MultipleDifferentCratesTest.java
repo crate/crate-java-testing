@@ -27,30 +27,44 @@ import org.junit.ClassRule;
 import org.junit.Test;
 
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-public class FromUrlTest {
+public class MultipleDifferentCratesTest {
 
     static {
         File downloadFolder = new File(CrateTestServer.DEFAULT_WORKING_DIR, "/parts");
         FileSystemUtils.deleteRecursively(downloadFolder, false);
     }
 
-    private static final String CLUSTER_NAME = "from-uri";
+    public static final String CLUSTER_NAME = "multiples";
 
     @ClassRule
-    public static CrateTestServer fromUrlServer = CrateTestServer.fromURL("https://cdn.crate.io/downloads/releases/crate-0.53.0.tar.gz", CLUSTER_NAME);
+    public static CrateTestServer CLUSTER_0_53_1 = CrateTestServer.fromVersion("0.53.1").clusterName(CLUSTER_NAME).build();
 
+    @ClassRule
+    public static CrateTestServer CLUSTER_0_52_4 = CrateTestServer.fromVersion("0.52.4").clusterName(CLUSTER_NAME).build();
 
     @Test
-    public void testFromUrl() throws Exception {
+    public void testAgainstMultipleCrates() throws Exception {
+        assertThat(Files.exists(Paths.get("parts/crate-0.53.1")), is(true));
+        assertThat(Files.exists(Paths.get("parts/crate-0.52.4")), is(true));
         assertThat(
-                (String) fromUrlServer.execute("select name from sys.cluster").rows()[0][0],
+                (String) CLUSTER_0_52_4.execute("select name from sys.cluster").rows()[0][0],
                 is(CLUSTER_NAME));
         assertThat(
-                (String) fromUrlServer.execute("select version['number'] from sys.nodes").rows()[0][0],
-                is("0.53.0"));
+                (String) CLUSTER_0_52_4.execute("select version['number'] from sys.nodes").rows()[0][0],
+                is("0.52.4"));
+
+        assertThat(
+                (String) CLUSTER_0_53_1.execute("select name from sys.cluster").rows()[0][0],
+                is(CLUSTER_NAME));
+        assertThat(
+                (String) CLUSTER_0_53_1.execute("select version['number'] from sys.nodes").rows()[0][0],
+                is("0.53.1"));
+
     }
 }

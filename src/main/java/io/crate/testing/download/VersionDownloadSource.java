@@ -19,29 +19,37 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.testing;
+package io.crate.testing.download;
 
-import java.io.IOException;
-import java.net.ServerSocket;
+import java.io.File;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.Locale;
 
-class Utils {
+class VersionDownloadSource implements DownloadSource {
 
-    /**
-     * @return a random available port for binding
-     */
-    static int randomAvailablePort() {
-        try {
-            ServerSocket socket = new  ServerSocket(0);
-            int port = socket.getLocalPort();
-            socket.close();
-            return port;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    public static final String VERSION_DOWNLOAD_URL =  "https://cdn.crate.io/downloads/releases/crate-%s.tar.gz";
+
+    private final String version;
+    private final String folderName;
+
+    public VersionDownloadSource(String version) {
+        this.version = version;
+        this.folderName = String.format(Locale.ENGLISH, "crate-%s", version);
     }
 
-    static void log(String message, Object ... params) {
-        System.out.println(String.format(Locale.ENGLISH, message, params));
+    @Override
+    public File folder(File containingFolder) {
+        return new File(containingFolder, folderName);
+    }
+
+    @Override
+    public URL downloadUrl() throws MalformedURLException {
+        return new URL(String.format(Locale.ENGLISH, VERSION_DOWNLOAD_URL, version));
+    }
+
+    @Override
+    public String toString() {
+        return String.format(Locale.ENGLISH, "VERSION[%s]", version);
     }
 }

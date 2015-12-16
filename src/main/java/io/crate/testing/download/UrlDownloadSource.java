@@ -19,29 +19,40 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.testing;
+package io.crate.testing.download;
 
-import java.io.IOException;
-import java.net.ServerSocket;
+import io.crate.shade.com.google.common.base.Charsets;
+import io.crate.shade.com.google.common.hash.Hashing;
+
+import java.io.File;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.Locale;
 
-class Utils {
+class UrlDownloadSource implements DownloadSource {
 
-    /**
-     * @return a random available port for binding
-     */
-    static int randomAvailablePort() {
-        try {
-            ServerSocket socket = new  ServerSocket(0);
-            int port = socket.getLocalPort();
-            socket.close();
-            return port;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    private final String stringURL;
+    private final String folderName;
+
+    public UrlDownloadSource(String stringURL) {
+        this.stringURL = stringURL;
+        this.folderName = String.format(Locale.ENGLISH,
+                "crate-url-%s",
+                Hashing.sha1().hashString(stringURL, Charsets.UTF_8).toString());
     }
 
-    static void log(String message, Object ... params) {
-        System.out.println(String.format(Locale.ENGLISH, message, params));
+    @Override
+    public File folder(File containingFolder) {
+        return new File(containingFolder, folderName);
+    }
+
+    @Override
+    public URL downloadUrl() throws MalformedURLException {
+        return new URL(stringURL);
+    }
+
+    @Override
+    public String toString() {
+        return String.format(Locale.ENGLISH, "URL[%s]", stringURL);
     }
 }

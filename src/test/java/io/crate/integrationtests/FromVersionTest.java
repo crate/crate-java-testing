@@ -31,26 +31,27 @@ import java.io.File;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-public class FromUrlTest {
+public class FromVersionTest {
 
     static {
         File downloadFolder = new File(CrateTestServer.DEFAULT_WORKING_DIR, "/parts");
         FileSystemUtils.deleteRecursively(downloadFolder, false);
     }
 
-    private static final String CLUSTER_NAME = "from-uri";
+    private static final String CLUSTER_NAME = "from-version";
+    private static final String VERSION = "0.53.1";
 
     @ClassRule
-    public static CrateTestServer fromUrlServer = CrateTestServer.fromURL("https://cdn.crate.io/downloads/releases/crate-0.53.0.tar.gz", CLUSTER_NAME);
+    public static CrateTestServer fromUrlServer = CrateTestServer.fromVersion(VERSION).clusterName(CLUSTER_NAME).build();
 
 
     @Test
-    public void testFromUrl() throws Exception {
+    public void testFromVersion() throws Exception {
         assertThat(
                 (String) fromUrlServer.execute("select name from sys.cluster").rows()[0][0],
                 is(CLUSTER_NAME));
         assertThat(
                 (String) fromUrlServer.execute("select version['number'] from sys.nodes").rows()[0][0],
-                is("0.53.0"));
+                is(VERSION));
     }
 }

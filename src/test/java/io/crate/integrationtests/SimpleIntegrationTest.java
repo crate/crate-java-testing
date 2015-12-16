@@ -38,8 +38,8 @@ import static org.hamcrest.core.Is.is;
 public class SimpleIntegrationTest {
 
     static {
-        File downloadFolder = new File(CrateTestServer.DEFAULT_WORKING_DIR, "/parts/crate");
-        FileSystemUtils.deleteRecursively(downloadFolder, true);
+        File downloadFolder = new File(CrateTestServer.DEFAULT_WORKING_DIR, "/parts");
+        FileSystemUtils.deleteRecursively(downloadFolder, false);
     }
 
     private static final String CLUSTER_NAME = "crate-java-testing";
