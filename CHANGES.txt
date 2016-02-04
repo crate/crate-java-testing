@@ -2,6 +2,11 @@
 Changes for Crate-Java-Testing
 ==============================
 
+Unreleased
+==========
+
+ * fix: correct wiping of data and logs directories
+
 2015/12/16 0.2.0
 ================
 

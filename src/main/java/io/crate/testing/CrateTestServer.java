@@ -356,8 +356,6 @@ public class CrateTestServer extends ExternalResource implements TestCluster {
         downloadLocation.toFile().delete();
     }
 
-
-
     @Override
     protected void before() throws Throwable {
         downloadCrate();
@@ -540,7 +538,7 @@ public class CrateTestServer extends ExternalResource implements TestCluster {
     }
 
     private void wipeDataDirectory() throws Exception {
-        File dataDir = new File(workingDir + "/parts/crate/data");
+        File dataDir = resourceDirectory("data");
         if (dataDir.exists()) {
             deletePath(dataDir.toPath());
             assertFalse(dataDir.exists());
@@ -548,10 +546,16 @@ public class CrateTestServer extends ExternalResource implements TestCluster {
     }
 
     private void wipeLogs() throws Exception {
-        File logDir = new File(workingDir + "/parts/crate/logs");
+        File logDir = resourceDirectory("logs");
         if (logDir.exists()) {
             deletePath(logDir.toPath());
             assertFalse(logDir.exists());
         }
     }
+
+    private File resourceDirectory(String resource) {
+        File parts = downloadSource.folder(new File(workingDir, CRATE_INSTANCES_DIR));
+        return new File(parts, resource);
+    }
+
 }
