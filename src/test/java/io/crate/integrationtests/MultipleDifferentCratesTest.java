@@ -40,31 +40,40 @@ public class MultipleDifferentCratesTest {
         FileSystemUtils.deleteRecursively(downloadFolder, false);
     }
 
-    public static final String CLUSTER_NAME = "multiples";
+    private static final String CLUSTER_NAME = "multiples";
+    private static final String FIRST_VERSION = "0.54.0";
+    private static final String SECOND_VERSION = "0.54.1";
+
 
     @ClassRule
-    public static CrateTestServer CLUSTER_0_53_1 = CrateTestServer.fromVersion("0.53.1").clusterName(CLUSTER_NAME).build();
+    public static CrateTestServer FIRST_CLUSTER = CrateTestServer
+            .fromVersion(FIRST_VERSION)
+            .clusterName(CLUSTER_NAME)
+            .build();
 
     @ClassRule
-    public static CrateTestServer CLUSTER_0_52_4 = CrateTestServer.fromVersion("0.52.4").clusterName(CLUSTER_NAME).build();
+    public static CrateTestServer SECOND_CLUSTER = CrateTestServer
+            .fromVersion(SECOND_VERSION)
+            .clusterName(CLUSTER_NAME)
+            .build();
 
     @Test
     public void testAgainstMultipleCrates() throws Exception {
-        assertThat(Files.exists(Paths.get("parts/crate-0.53.1")), is(true));
-        assertThat(Files.exists(Paths.get("parts/crate-0.52.4")), is(true));
+        assertThat(Files.exists(Paths.get(String.format("parts/crate-%s", FIRST_VERSION))), is(true));
+        assertThat(Files.exists(Paths.get(String.format("parts/crate-%s", SECOND_VERSION))), is(true));
         assertThat(
-                (String) CLUSTER_0_52_4.execute("select name from sys.cluster").rows()[0][0],
+                (String) SECOND_CLUSTER.execute("select name from sys.cluster").rows()[0][0],
                 is(CLUSTER_NAME));
         assertThat(
-                (String) CLUSTER_0_52_4.execute("select version['number'] from sys.nodes").rows()[0][0],
-                is("0.52.4"));
+                (String) SECOND_CLUSTER.execute("select version['number'] from sys.nodes").rows()[0][0],
+                is(SECOND_VERSION));
 
         assertThat(
-                (String) CLUSTER_0_53_1.execute("select name from sys.cluster").rows()[0][0],
+                (String) FIRST_CLUSTER.execute("select name from sys.cluster").rows()[0][0],
                 is(CLUSTER_NAME));
         assertThat(
-                (String) CLUSTER_0_53_1.execute("select version['number'] from sys.nodes").rows()[0][0],
-                is("0.53.1"));
+                (String) FIRST_CLUSTER.execute("select version['number'] from sys.nodes").rows()[0][0],
+                is(FIRST_VERSION));
 
     }
 }

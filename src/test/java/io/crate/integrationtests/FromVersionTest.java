@@ -42,7 +42,10 @@ public class FromVersionTest {
     private static final String VERSION = "0.53.1";
 
     @ClassRule
-    public static CrateTestServer fromUrlServer = CrateTestServer.fromVersion(VERSION).clusterName(CLUSTER_NAME).build();
+    public static CrateTestServer fromUrlServer = CrateTestServer
+            .fromVersion(VERSION)
+            .clusterName(CLUSTER_NAME)
+            .build();
 
 
     @Test

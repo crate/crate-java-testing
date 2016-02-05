@@ -39,9 +39,11 @@ public class FromUrlTest {
     }
 
     private static final String CLUSTER_NAME = "from-uri";
+    private static final String VERSION = "0.53.0";
 
     @ClassRule
-    public static CrateTestServer fromUrlServer = CrateTestServer.fromURL("https://cdn.crate.io/downloads/releases/crate-0.53.0.tar.gz", CLUSTER_NAME);
+    public static CrateTestServer fromUrlServer = CrateTestServer
+            .fromURL(String.format("https://cdn.crate.io/downloads/releases/crate-%s.tar.gz", VERSION), CLUSTER_NAME);
 
 
     @Test
@@ -51,6 +53,6 @@ public class FromUrlTest {
                 is(CLUSTER_NAME));
         assertThat(
                 (String) fromUrlServer.execute("select version['number'] from sys.nodes").rows()[0][0],
-                is("0.53.0"));
+                is(VERSION));
     }
 }

@@ -40,11 +40,13 @@ import static org.hamcrest.core.Is.is;
  */
 public class ReuseServerInstanceTest {
 
-    public static final String CLUSTER_NAME = "rule";
+    private static final String CLUSTER_NAME = "rule";
+    private static AtomicReference<String> clusterId = new AtomicReference<>();
 
-    public static AtomicReference<String> clusterId = new AtomicReference<>();
-
-    static CrateTestServer STATIC_SERVER = new CrateTestServer(CLUSTER_NAME, "0.52.2");
+    static CrateTestServer STATIC_SERVER = CrateTestServer
+            .fromVersion("0.52.2")
+            .clusterName(CLUSTER_NAME)
+            .build();
 
     @Rule
     public final CrateTestServer testServer = STATIC_SERVER;
@@ -61,7 +63,7 @@ public class ReuseServerInstanceTest {
     }
 
     private void executeTest() {
-        String localClusterId = (String)testServer.execute("select id from sys.cluster").rows()[0][0];
+        String localClusterId = (String) testServer.execute("select id from sys.cluster").rows()[0][0];
 
         String otherClusterId = clusterId.getAndSet(localClusterId);
         if (otherClusterId != null) {

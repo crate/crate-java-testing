@@ -37,7 +37,8 @@ import static org.hamcrest.core.Is.is;
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class ClusterTest extends RandomizedTest {
 
-    public static final String CLUSTER_NAME = "cluster";
+    private static final String CLUSTER_NAME = "cluster";
+    private static final String VERSION = "0.53.0";
 
     @Rule
     public TemporaryFolder tempFolder = new TemporaryFolder();
@@ -47,7 +48,7 @@ public class ClusterTest extends RandomizedTest {
 
     @Test
     public void testClusterBuilder() throws Throwable {
-        CrateTestCluster cluster = CrateTestCluster.fromVersion("0.53.0")
+        CrateTestCluster cluster = CrateTestCluster.fromVersion(VERSION)
                 .clusterName(CLUSTER_NAME)
                 .workingDir(tempFolder.getRoot().getAbsolutePath())
                 .numberOfNodes(3)
@@ -63,7 +64,7 @@ public class ClusterTest extends RandomizedTest {
             for (CrateTestServer server : servers) {
                 SQLResponse response = server.execute("select version['number'] from sys.nodes");
                 assertThat(response.rowCount(), is(3L));
-                assertThat((String) response.rows()[0][0], is("0.53.0"));
+                assertThat((String) response.rows()[0][0], is(VERSION));
 
 
                 SQLResponse clusterResponse = server.execute("select name, settings['stats']['enabled'] from sys.cluster");
@@ -78,12 +79,11 @@ public class ClusterTest extends RandomizedTest {
         }
     }
 
-
     @Test
     public void testNoNodes() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("invalid number of nodes: 0");
-        CrateTestCluster.fromVersion("0.53.0")
+        CrateTestCluster.fromVersion(VERSION)
                 .clusterName(CLUSTER_NAME)
                 .workingDir(tempFolder.getRoot().getAbsolutePath())
                 .numberOfNodes(0)

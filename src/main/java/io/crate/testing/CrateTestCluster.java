@@ -133,7 +133,7 @@ public class CrateTestCluster extends ExternalResource implements TestCluster {
         return Builder.fromVersion(crateVersion);
     }
 
-    public static CrateTestCluster  cluster(String clusterName,
+    public static CrateTestCluster cluster(String clusterName,
                                            String crateVersion,
                                            int numberOfNodes) {
         return Builder.fromVersion(crateVersion)

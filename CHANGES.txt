@@ -5,6 +5,8 @@ Changes for Crate-Java-Testing
 Unreleased
 ==========
 
+ * removed CrateTestServer public constructors
+
  * fix: correct wiping of data and logs directories
 
 2015/12/16 0.2.0

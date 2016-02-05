@@ -40,8 +40,11 @@ public class FromFileTest {
     }
 
     private static final String CLUSTER_NAME = "from-file";
+    private static final String VERSION = "0.53.0";
 
-    private static final String FILE = FromFileTest.class.getResource("crate-0.53.0.tar.gz").getPath();
+    private static final String FILE = FromFileTest.class
+            .getResource(String.format("crate-%s.tar.gz", VERSION))
+            .getPath();
 
     @ClassRule
     public static CrateTestServer fromFileServer = CrateTestServer.fromFile(FILE, CLUSTER_NAME);
@@ -54,6 +57,6 @@ public class FromFileTest {
                 is(CLUSTER_NAME));
         assertThat(
                 (String) fromFileServer.execute("select version['number'] from sys.nodes").rows()[0][0],
-                is("0.53.0"));
+                is(VERSION));
     }
 }

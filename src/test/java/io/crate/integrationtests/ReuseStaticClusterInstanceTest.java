@@ -33,11 +33,11 @@ import static org.hamcrest.core.Is.is;
 
 public class ReuseStaticClusterInstanceTest {
 
-    public static final String CLUSTER_NAME = "static_cluster";
+    private static final String CLUSTER_NAME = "static_cluster";
 
-    static CrateTestCluster STATIC_CLUSTER = CrateTestCluster.cluster(CLUSTER_NAME, "0.52.2", 2);
+    private static CrateTestCluster STATIC_CLUSTER = CrateTestCluster.cluster(CLUSTER_NAME, "0.52.2", 2);
 
-    public static AtomicReference<String> clusterId = new AtomicReference<>();
+    private static AtomicReference<String> clusterId = new AtomicReference<>();
 
     @Rule
     public CrateTestCluster testCluster = STATIC_CLUSTER;

@@ -45,7 +45,10 @@ public class SimpleIntegrationTest {
     private static final String CLUSTER_NAME = "crate-java-testing";
 
     @ClassRule
-    public static final CrateTestServer testServer = new CrateTestServer(CLUSTER_NAME, "0.52.2");
+    public static final CrateTestServer testServer = CrateTestServer
+            .fromVersion("0.52.2")
+            .clusterName(CLUSTER_NAME)
+            .build();
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
@@ -58,8 +61,6 @@ public class SimpleIntegrationTest {
         SQLResponse response = testServer.execute("select * from test");
         assertThat(response.rowCount(), is(1L));
     }
-
-
 
     @Test
     public void testClusterName() throws Exception {
