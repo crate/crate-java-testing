@@ -5,6 +5,8 @@ Changes for Crate-Java-Testing
 Unreleased
 ==========
 
+ * update crate client version
+
  * removed CrateTestServer public constructors
 
  * fix: correct wiping of data and logs directories
