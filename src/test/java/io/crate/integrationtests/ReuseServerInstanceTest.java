@@ -22,29 +22,29 @@
 package io.crate.integrationtests;
 
 import io.crate.testing.CrateTestServer;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.hamcrest.CoreMatchers.*;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
+import static org.hamcrest.core.IsNot.not;
 
 /**
  * testing multiple starts and stops of a testserver
  * when used as a method rule.
- *
+ * <p/>
  * This is the same behaviour as using the testserver as static instance in an abstract superclass
  * for many tests.
  */
-public class ReuseServerInstanceTest {
+public class ReuseServerInstanceTest extends BaseTest {
 
     private static final String CLUSTER_NAME = "rule";
     private static AtomicReference<String> clusterId = new AtomicReference<>();
 
     static CrateTestServer STATIC_SERVER = CrateTestServer
-            .fromVersion("0.52.2")
+            .fromVersion("0.54.0")
             .clusterName(CLUSTER_NAME)
             .build();
 
@@ -56,6 +56,11 @@ public class ReuseServerInstanceTest {
         executeTest();
     }
 
+    @Before
+    public void setUp() {
+        crateClient = crateClient(STATIC_SERVER.crateHost(), STATIC_SERVER.transportPort());
+    }
+
     @Test
     public void testSecondMethod() throws Exception {
         executeTest();
@@ -63,12 +68,13 @@ public class ReuseServerInstanceTest {
     }
 
     private void executeTest() {
-        String localClusterId = (String) testServer.execute("select id from sys.cluster").rows()[0][0];
+        String localClusterId = (String) execute("select id from sys.cluster").rows()[0][0];
 
         String otherClusterId = clusterId.getAndSet(localClusterId);
         if (otherClusterId != null) {
             assertThat(localClusterId, is(not(otherClusterId)));
         }
     }
+
 }
 

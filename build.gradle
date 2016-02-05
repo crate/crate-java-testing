@@ -3,15 +3,11 @@ plugins {
     id 'java'
     id 'maven'
     id 'signing'
-    id 'com.github.johnrengelman.shadow' version '1.2.1'
 }
 
 description = 'Crate Testing'
 
-
 group = "io.crate"
-
-archivesBaseName = "crate-testing"
 
 repositories {
     mavenCentral()
@@ -20,12 +16,11 @@ repositories {
 
 dependencies {
     compile "junit:junit:$junitVersion"
-    compile "io.crate:crate-client:$crateClientVersion"
     compile "org.apache.commons:commons-compress:1.2"
-
     // workaround in order to properly use ES TransportClient
     compile "com.tdunning:t-digest:$tDigestVersion"
 
+    testCompile "io.crate:crate-client:$crateClientVersion"
     testCompile ("com.carrotsearch.randomizedtesting:randomizedtesting-runner:$randomizedTestingVersion") {
         exclude group: 'junit', module: 'junit'
     }
@@ -69,26 +64,6 @@ task getVersion ( dependsOn: 'classes') << {
     logger.quiet("version: " + version)
 }
 
-
-shadowJar {
-    baseName 'crate-testing'
-    classifier ''
-    duplicatesStrategy 'exclude'
-    exclude 'META-INF/**'
-
-    relocate 'io.crate.action',     'io.crate.testserver.action'
-    relocate 'io.crate.client',     'io.crate.testserver.client'
-    relocate 'io.crate.shade',      'io.crate.testserver.shade'
-    relocate 'org.apache.commons',  'io.crate.testserver.apache.commons'
-    relocate 'com.tdunning',        'io.crate.testsercer.tdunning'
-
-    doLast {
-        manifest {
-            attributes("Implementation-Title": "Crate.IO Testing", "Implementation-Version": project.version)
-        }
-    }
-}
-
 sourceSets {
     main {
         java {
@@ -106,10 +81,9 @@ sourceSets {
 task buildJar(dependsOn: [getVersion]) {
     doLast {
         ext.version= project.version
-        tasks.shadowJar.execute()
     }
 }
-tasks.buildJar.mustRunAfter jar // otherwise jar task would override shadowJar artifact
+tasks.buildJar.mustRunAfter jar // otherwise jar task would override shadowJar artifact ?
 
 task myJavadocs(type: Javadoc, dependsOn: processResources) {
     classpath = configurations.compile
@@ -142,7 +116,6 @@ task buildSourceJar (dependsOn: [getVersion] ) << {
 
 
 artifacts {
-    archives shadowJar
     archives javadocJar
     archives sourceJar
 }

@@ -21,9 +21,7 @@
 
 package io.crate.testing.download;
 
-import io.crate.shade.com.google.common.base.Charsets;
-import io.crate.shade.com.google.common.base.Preconditions;
-import io.crate.shade.com.google.common.hash.Hashing;
+import io.crate.testing.Utils;
 
 import java.io.File;
 import java.net.MalformedURLException;
@@ -42,13 +40,15 @@ class FileDownloadSource implements DownloadSource {
 
     public FileDownloadSource(String pathToTarGzDistribution) {
         Path path = Paths.get(pathToTarGzDistribution);
-        Preconditions.checkArgument(Files.exists(path),
-                String.format(Locale.ENGLISH, "%s does not exist", pathToTarGzDistribution));
+        if (!Files.exists(path)) {
+            throw new IllegalArgumentException(
+                    String.format(Locale.ENGLISH, "%s does not exist", pathToTarGzDistribution));
+        }
 
         this.pathToTarGzDistribution = path;
         this.folderName = String.format(Locale.ENGLISH,
                 FOLDER_PREFIX,
-                Hashing.sha1().hashString(pathToTarGzDistribution, Charsets.UTF_8).toString());
+                Utils.sha1(pathToTarGzDistribution));
     }
 
     @Override

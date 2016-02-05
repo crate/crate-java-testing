@@ -21,40 +21,34 @@
 
 package io.crate.testing;
 
-import com.carrotsearch.randomizedtesting.RandomizedTest;
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import io.crate.action.sql.SQLResponse;
-import io.crate.shade.org.elasticsearch.common.settings.ImmutableSettings;
+import io.crate.integrationtests.BaseTest;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.junit.rules.TemporaryFolder;
 
 import java.util.Collection;
+import java.util.HashMap;
 
 import static org.hamcrest.core.Is.is;
 
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
-public class ClusterTest extends RandomizedTest {
+public class ClusterTest extends BaseTest {
 
     private static final String CLUSTER_NAME = "cluster";
-    private static final String VERSION = "0.53.0";
-
-    @Rule
-    public TemporaryFolder tempFolder = new TemporaryFolder();
+    private static final String VERSION = "0.54.0";
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
     @Test
     public void testClusterBuilder() throws Throwable {
-        CrateTestCluster cluster = CrateTestCluster.fromVersion(VERSION)
+        CrateTestCluster cluster = CrateTestCluster
+                .fromVersion(VERSION)
                 .clusterName(CLUSTER_NAME)
-                .workingDir(tempFolder.getRoot().getAbsolutePath())
                 .numberOfNodes(3)
-                .settings(ImmutableSettings.builder()
-                        .put("stats.enabled", true)
-                        .build())
+                .settings(new HashMap<String, Object>() {{
+                    put("stats.enabled", true);
+                }})
                 .build();
 
         try {
@@ -62,17 +56,17 @@ public class ClusterTest extends RandomizedTest {
             Collection<CrateTestServer> servers = cluster.servers();
             assertThat(servers.size(), is(3));
             for (CrateTestServer server : servers) {
-                SQLResponse response = server.execute("select version['number'] from sys.nodes");
+                crateClient = crateClient(server.crateHost(), server.transportPort());
+                SQLResponse response = execute("select version['number'] from sys.nodes");
                 assertThat(response.rowCount(), is(3L));
                 assertThat((String) response.rows()[0][0], is(VERSION));
 
-
-                SQLResponse clusterResponse = server.execute("select name, settings['stats']['enabled'] from sys.cluster");
+                SQLResponse clusterResponse = execute("select name, settings['stats']['enabled'] from sys.cluster");
                 assertThat((String) clusterResponse.rows()[0][0], is(CLUSTER_NAME));
-
                 assertThat(String.valueOf(clusterResponse.rows()[0][1]), is("true"));
-                cluster.ensureGreen();
-                cluster.ensureYellow();
+
+                ensureYellow(server);
+                ensureGreen(server);
             }
         } finally {
             cluster.after();
@@ -85,12 +79,11 @@ public class ClusterTest extends RandomizedTest {
         expectedException.expectMessage("invalid number of nodes: 0");
         CrateTestCluster.fromVersion(VERSION)
                 .clusterName(CLUSTER_NAME)
-                .workingDir(tempFolder.getRoot().getAbsolutePath())
                 .numberOfNodes(0)
-
-                .settings(ImmutableSettings.builder()
-                        .put("stats.enabled", true)
-                        .build())
+                .settings(new HashMap<String, Object>() {{
+                    put("stats.enabled", true);
+                }})
                 .build();
     }
+
 }
