@@ -5,7 +5,7 @@ Changes for Crate-Java-Testing
 Unreleased
 ==========
 
-2016/02/08 0.2.0
+2016/02/08 0.3.0
 ================
 
  * remove execute logic from crate server and cluster
