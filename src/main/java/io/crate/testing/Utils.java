@@ -21,18 +21,21 @@
 
 package io.crate.testing;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.ServerSocket;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Locale;
 
-class Utils {
+public class Utils {
 
     /**
      * @return a random available port for binding
      */
     static int randomAvailablePort() {
         try {
-            ServerSocket socket = new  ServerSocket(0);
+            ServerSocket socket = new ServerSocket(0);
             int port = socket.getLocalPort();
             socket.close();
             return port;
@@ -41,7 +44,50 @@ class Utils {
         }
     }
 
-    static void log(String message, Object ... params) {
+    static void log(String message, Object... params) {
         System.out.println(String.format(Locale.ENGLISH, message, params));
     }
+
+    public static boolean deleteRecursively(File root, boolean deleteRoot) {
+        if (root != null) {
+            File[] children = root.listFiles();
+            if (children != null) {
+                for (File aChildren : children) {
+                    deleteRecursively(aChildren, true);
+                }
+            }
+
+            if (deleteRoot) {
+                return root.delete();
+            } else {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static String sha1(String input) {
+        StringBuilder stringBuilder = new StringBuilder();
+        try {
+            MessageDigest messageDigest = MessageDigest.getInstance("SHA1");
+            for (byte res : messageDigest.digest(input.getBytes())) {
+                stringBuilder.append(Integer.toString((res & 0xff) + 0x100, 16).substring(1));
+            }
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalArgumentException("Hashing algorithms does not exist");
+        }
+        return stringBuilder.toString();
+    }
+
+    public static String join(String[] items, String on) {
+        StringBuilder sb = new StringBuilder();
+        for (String item : items) {
+            if (sb.length() > 0) {
+                sb.append(on);
+            }
+            sb.append(item);
+        }
+        return sb.toString();
+    }
+
 }

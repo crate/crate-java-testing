@@ -21,8 +21,7 @@
 
 package io.crate.testing.download;
 
-import io.crate.shade.com.google.common.base.Charsets;
-import io.crate.shade.com.google.common.hash.Hashing;
+import io.crate.testing.Utils;
 
 import java.io.File;
 import java.net.MalformedURLException;
@@ -33,12 +32,11 @@ class UrlDownloadSource implements DownloadSource {
 
     private final String stringURL;
     private final String folderName;
-
     public UrlDownloadSource(String stringURL) {
         this.stringURL = stringURL;
         this.folderName = String.format(Locale.ENGLISH,
                 "crate-url-%s",
-                Hashing.sha1().hashString(stringURL, Charsets.UTF_8).toString());
+                Utils.sha1(stringURL));
     }
 
     @Override

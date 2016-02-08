@@ -21,23 +21,6 @@
 
 package io.crate.testing;
 
-import io.crate.action.sql.SQLBulkRequest;
-import io.crate.action.sql.SQLBulkResponse;
-import io.crate.action.sql.SQLRequest;
-import io.crate.action.sql.SQLResponse;
-import io.crate.client.CrateClient;
-import io.crate.client.InternalCrateClient;
-import io.crate.shade.com.google.common.base.Joiner;
-import io.crate.shade.com.google.common.base.MoreObjects;
-import io.crate.shade.com.google.common.base.Preconditions;
-import io.crate.shade.org.elasticsearch.ElasticsearchTimeoutException;
-import io.crate.shade.org.elasticsearch.action.ActionFuture;
-import io.crate.shade.org.elasticsearch.client.transport.NoNodeAvailableException;
-import io.crate.shade.org.elasticsearch.client.transport.TransportClient;
-import io.crate.shade.org.elasticsearch.common.settings.ImmutableSettings;
-import io.crate.shade.org.elasticsearch.common.settings.Settings;
-import io.crate.shade.org.elasticsearch.common.transport.InetSocketTransportAddress;
-import io.crate.shade.org.elasticsearch.common.unit.TimeValue;
 import io.crate.testing.download.DownloadSource;
 import io.crate.testing.download.DownloadSources;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
@@ -45,34 +28,57 @@ import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
 import org.junit.rules.ExternalResource;
 
-import java.io.*;
-import java.lang.reflect.Field;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
 import java.net.InetAddress;
-import java.nio.file.*;
+import java.net.URL;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import static org.junit.Assert.assertFalse;
 
-public class CrateTestServer extends ExternalResource implements TestCluster {
+public class CrateTestServer extends ExternalResource {
 
-    public static final TimeValue DEFAULT_TIMEOUT = TimeValue.timeValueSeconds(10);
     public static final String DEFAULT_WORKING_DIR = System.getProperty("user.dir");
     public static final String CRATE_INSTANCES_DIR = "/parts";
 
-    public final int httpPort;
-    public final int transportPort;
-    public final String crateHost;
+    private final int httpPort;
+    private final int transportPort;
+    private final String crateHost;
     private final String workingDir;
     private final String clusterName;
     private final String[] unicastHosts;
     private final DownloadSource downloadSource;
-    private final Settings nodeSettings;
+    private final Map<String, Object> nodeSettings;
+    private boolean isReady = false;
 
     private ExecutorService executor;
-    private CrateClient crateClient;
-    private TransportClient transportClient;
     private Process crateProcess;
 
     public static class Builder {
@@ -83,9 +89,10 @@ public class CrateTestServer extends ExternalResource implements TestCluster {
         private String clusterName = "Testing-" + transportPort;
         private List<String> unicastHosts = new ArrayList<>();
         private DownloadSource downloadSource = null;
-        private Settings nodeSettings = ImmutableSettings.EMPTY;
+        private Map<String, Object> nodeSettings = Collections.emptyMap();
 
-        private Builder() {}
+        private Builder() {
+        }
 
         public static Builder fromURL(String url) {
             return new Builder().fromDownloadSource(DownloadSources.URL(url));
@@ -124,7 +131,7 @@ public class CrateTestServer extends ExternalResource implements TestCluster {
             return this;
         }
 
-        public Builder addUnicastHosts(String ... unicastHosts) {
+        public Builder addUnicastHosts(String... unicastHosts) {
             Collections.addAll(this.unicastHosts, unicastHosts);
             return this;
         }
@@ -134,14 +141,17 @@ public class CrateTestServer extends ExternalResource implements TestCluster {
             return this;
         }
 
-        public Builder settings(Settings nodeSettings) {
+        public Builder settings(Map<String, Object> nodeSettings) {
             this.nodeSettings = nodeSettings;
             return this;
         }
 
         public CrateTestServer build() {
-            Preconditions.checkArgument(downloadSource != null, "no download source given (version, git-ref, url, file)");
-            return new CrateTestServer(clusterName, downloadSource, httpPort, transportPort, workingDir, host, nodeSettings, unicastHosts.toArray(new String[unicastHosts.size()]));
+            if (downloadSource == null) {
+                throw new IllegalArgumentException("no download source given (version, git-ref, url, file)");
+            }
+            return new CrateTestServer(clusterName, downloadSource, httpPort, transportPort, workingDir,
+                    host, nodeSettings, unicastHosts.toArray(new String[unicastHosts.size()]));
         }
     }
 
@@ -174,100 +184,49 @@ public class CrateTestServer extends ExternalResource implements TestCluster {
     }
 
     private CrateTestServer(String clusterName,
-                           DownloadSource downloadSource,
-                           int httpPort,
-                           int transportPort,
-                           String workingDir,
-                           String host,
-                           Settings settings,
-                           String ... unicastHosts) {
-        this.clusterName = MoreObjects.firstNonNull(clusterName, "Testing-" + transportPort);
+                            DownloadSource downloadSource,
+                            int httpPort,
+                            int transportPort,
+                            String workingDir,
+                            String host,
+                            Map<String, Object> settings,
+                            String... unicastHosts) {
+        this.clusterName = firstNonNull(clusterName, "Testing-" + transportPort);
         this.downloadSource = downloadSource;
         this.crateHost = host;
         this.httpPort = httpPort;
         this.transportPort = transportPort;
         this.unicastHosts = unicastHosts;
         this.workingDir = workingDir;
-        this.nodeSettings = settings == null ? ImmutableSettings.EMPTY : settings;
+        this.nodeSettings = settings == null ? Collections.<String, Object>emptyMap() : settings;
     }
 
-    public SQLResponse execute(String statement) {
-        return execute(statement, SQLRequest.EMPTY_ARGS, DEFAULT_TIMEOUT);
-    }
-
-    public SQLResponse execute(String statement, TimeValue timeout) {
-        return execute(statement, SQLRequest.EMPTY_ARGS, timeout);
-    }
-
-    public SQLResponse execute(String statement, Object[] args) {
-        return execute(statement, args, DEFAULT_TIMEOUT);
-    }
-
-    public SQLResponse execute(String statement, Object[] args, TimeValue timeout) {
-        return crateClient.sql(new SQLRequest(statement, args)).actionGet(timeout);
-    }
-
-    public SQLBulkResponse execute(String statement, Object[][] bulkArgs) {
-        return execute(statement, bulkArgs, DEFAULT_TIMEOUT);
-    }
-
-    public SQLBulkResponse execute(String statement, Object[][] bulkArgs, TimeValue timeout) {
-        return crateClient.bulkSql(new SQLBulkRequest(statement, bulkArgs)).actionGet(timeout);
-    }
-
-    public ActionFuture<SQLResponse> executeAsync(String statement) {
-        return executeAsync(statement, SQLRequest.EMPTY_ARGS);
-    }
-
-    public ActionFuture<SQLResponse> executeAsync(String statement, Object[] args) {
-        return crateClient.sql(new SQLRequest(statement, args));
-    }
-
-    public ActionFuture<SQLBulkResponse> executeAsync(String statement, Object[][] bulkArgs) {
-        return crateClient.bulkSql(new SQLBulkRequest(statement, bulkArgs));
-    }
-
-    private CrateClient ensureCrateClient() {
-        if (crateClient == null) {
-            crateClient = new CrateClient(ImmutableSettings.builder()
-                    // use a custom classloader to avoid shading hassle
-                    .classLoader(new ShadingClassLoader(getClass().getClassLoader()))
-                    .build(), true);
-
-            // TODO: hack ahead: use reflection only until new CrateClient release contains new constructor
-            //       for creating the client with settings and server addresses
-            try {
-                Field internalCrateClientField = CrateClient.class.getDeclaredField("internalClient");
-                internalCrateClientField.setAccessible(true);
-                InternalCrateClient internalCrateClient = (InternalCrateClient)internalCrateClientField.get(crateClient);
-                internalCrateClient.addTransportAddress(new InetSocketTransportAddress(crateHost, transportPort));
-            } catch (NoSuchFieldException|IllegalAccessException e) {
-                throw new RuntimeException(e);
+    private static String firstNonNull(String... items) {
+        for (String item : items)
+            if (item != null) {
+                return item;
             }
-
-        }
-        return crateClient;
+        return null;
     }
 
-    private synchronized TransportClient ensureTransportClient() {
-        if (transportClient == null) {
-            Settings clientSettings = ImmutableSettings.builder()
-                    .put("cluster.name", clusterName)
-                    // use a classloader to avoid shading hassle
-                    .classLoader(new ShadingClassLoader(getClass().getClassLoader()))
-                    .build();
-            transportClient = new TransportClient(clientSettings);
-            transportClient.addTransportAddress(new InetSocketTransportAddress(crateHost, transportPort));
-        }
-        return transportClient;
+    public int httpPort() {
+        return httpPort;
     }
 
-    public void ensureYellow() {
-        ensureTransportClient().admin().cluster().prepareHealth().setWaitForYellowStatus().execute().actionGet();
+    public int transportPort() {
+        return transportPort;
     }
 
-    public void ensureGreen() {
-        ensureTransportClient().admin().cluster().prepareHealth().setWaitForGreenStatus().execute().actionGet();
+    public String crateHost() {
+        return crateHost;
+    }
+
+    public String clusterName() {
+        return clusterName;
+    }
+
+    public boolean isReady() {
+        return isReady;
     }
 
     private static void uncompressTarGZ(File tarFile, File dest) throws IOException {
@@ -300,13 +259,12 @@ public class CrateTestServer extends ExternalResource implements TestCluster {
                 destPath.mkdirs();
             } else {
                 destPath.createNewFile();
-                byte [] btoRead = new byte[1024];
+                byte[] btoRead = new byte[1024];
                 BufferedOutputStream bout =
                         new BufferedOutputStream(new FileOutputStream(destPath));
                 int len;
-                while((len = tarIn.read(btoRead)) != -1)
-                {
-                    bout.write(btoRead,0, len);
+                while ((len = tarIn.read(btoRead)) != -1) {
+                    bout.write(btoRead, 0, len);
                 }
 
                 bout.close();
@@ -340,7 +298,6 @@ public class CrateTestServer extends ExternalResource implements TestCluster {
         downloadCrate();
         Utils.log("Starting crate server process...");
         executor = Executors.newFixedThreadPool(2); // new threadpool for new process instance
-        crateClient = ensureCrateClient();
         startCrateAsDaemon();
         if (!waitUntilServerIsReady(60 * 1000)) { // wait 1 minute max
             after(); // after is not called by the test runner when an error happens here
@@ -372,41 +329,28 @@ public class CrateTestServer extends ExternalResource implements TestCluster {
         } finally {
             executor.shutdownNow();
         }
-        if (crateClient != null) {
-            crateClient.close();
-            crateClient = null;
-        }
-        if (transportClient != null) {
-            transportClient.close();
-            transportClient = null;
-        }
     }
 
     private void startCrateAsDaemon() throws IOException, InterruptedException {
-        ImmutableSettings.Builder settingsBuilder = ImmutableSettings.builder();
-        // add defaults and network configs
-        settingsBuilder
-                .put("index.storage.type", "memory")
-                .put("network.host", crateHost)
-                .put("cluster.name", clusterName)
-                .put("http.port", httpPort)
-                .put("transport.tcp.port", transportPort)
-                .put("discovery.zen.ping.multicast.enabled", "false")
-                .put("discovery.zen.ping.unicast.hosts", Joiner.on(",").join(unicastHosts));
-        // override with additional settings
-        settingsBuilder.put(nodeSettings);
-        Map<String, String> settingsMap = settingsBuilder.build().getAsMap();
+        Map<String, Object> settingsMap = new HashMap<String, Object>() {{
+            put("index.storage.type", "memory");
+            put("network.host", crateHost);
+            put("cluster.name", clusterName);
+            put("http.port", httpPort);
+            put("transport.tcp.port", transportPort);
+            put("discovery.zen.ping.multicast.enabled", "false");
+            put("discovery.zen.ping.unicast.hosts", Utils.join(unicastHosts, ","));
+        }};
 
-        String[] command = new String[settingsMap.size()+1];
+        settingsMap.putAll(nodeSettings);
+        String[] command = new String[settingsMap.size() + 1];
         int idx = 0;
         command[idx++] = "bin/crate";
 
-        for (Map.Entry<String, String> entry : settingsMap.entrySet()) {
+        for (Map.Entry<String, Object> entry : settingsMap.entrySet()) {
             command[idx++] = String.format(Locale.ENGLISH, "-Des.%s=%s", entry.getKey(), entry.getValue());
         }
-        ProcessBuilder processBuilder = new ProcessBuilder(
-            command
-        );
+        ProcessBuilder processBuilder = new ProcessBuilder(command);
         assert new File(workingDir).exists();
         processBuilder.directory(downloadSource.folder(new File(workingDir, CRATE_INSTANCES_DIR)));
         processBuilder.redirectErrorStream(true);
@@ -455,33 +399,38 @@ public class CrateTestServer extends ExternalResource implements TestCluster {
         });
     }
 
+    private boolean serverIsReady(URL url) throws IOException {
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        connection.setRequestMethod("POST");
+
+        String query = "{\"stmt\": \"select id from sys.cluster\"}";
+        byte[] body = query.getBytes("UTF-8");
+        connection.setRequestProperty("Content-Type", "application/text");
+        connection.setRequestProperty("Content-Length", String.valueOf(body.length));
+        connection.setDoOutput(true);
+        connection.getOutputStream().write(body);
+        return connection.getResponseCode() == 200;
+    }
+
     /**
      * wait until crate is ready
+     *
      * @param timeoutMillis the number of milliseconds to wait
      * @return true if server is ready, false if a timeout or another IOException occurred
      */
     private boolean waitUntilServerIsReady(final int timeoutMillis) throws IOException {
+        final URL serverUrl = new URL(String.format("http://%s:%d/_sql", crateHost, httpPort));
+
         FutureTask<Boolean> task = new FutureTask<>(new Callable<Boolean>() {
             @Override
             public Boolean call() throws Exception {
-                int timeoutRetries = 3;
                 while (true) {
                     try {
-                        crateClient.sql("select id from sys.cluster")
-                                .actionGet(timeoutMillis/10, TimeUnit.MILLISECONDS);
-                        break;
-                    } catch (NoNodeAvailableException e) {
-                       // carry on no matter what
-                    } catch (ElasticsearchTimeoutException e) {
-                        if (timeoutRetries == 0) {
-                            e.printStackTrace();
-                            return false;
+                        if (serverIsReady(serverUrl)) {
+                            isReady = true;
+                            break;
                         }
-                        timeoutRetries--;
-                        // carry on
                     } catch (Exception e) {
-                        e.printStackTrace();
-                        return false;
                     }
                     Thread.sleep(100);
                 }
