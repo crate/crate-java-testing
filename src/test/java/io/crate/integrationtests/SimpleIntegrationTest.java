@@ -23,55 +23,51 @@ package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLResponse;
-import io.crate.shade.org.elasticsearch.common.io.FileSystemUtils;
 import io.crate.testing.CrateTestServer;
+import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import java.io.File;
-
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 
-public class SimpleIntegrationTest {
-
-    static {
-        File downloadFolder = new File(CrateTestServer.DEFAULT_WORKING_DIR, "/parts");
-        FileSystemUtils.deleteRecursively(downloadFolder, false);
-    }
+public class SimpleIntegrationTest extends BaseTest {
 
     private static final String CLUSTER_NAME = "crate-java-testing";
 
     @ClassRule
     public static final CrateTestServer testServer = CrateTestServer
-            .fromVersion("0.52.2")
+            .fromVersion("0.53.0")
             .clusterName(CLUSTER_NAME)
             .build();
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
+    @BeforeClass
+    public static void setUp() {
+        crateClient = crateClient(testServer.crateHost(), testServer.transportPort());
+    }
+
     @Test
     public void testSimpleTest() {
-        testServer.execute("create table test (foo string)");
-        testServer.execute("insert into test (foo) values ('bar')");
-        testServer.execute("refresh table test");
-        SQLResponse response = testServer.execute("select * from test");
-        assertThat(response.rowCount(), is(1L));
+        execute("create table test (foo string)");
+        execute("insert into test (foo) values ('bar')");
+        execute("refresh table test");
+        assertThat(execute("select * from test").rowCount(), is(1L));
     }
 
     @Test
     public void testClusterName() throws Exception {
-        SQLResponse response = testServer.execute("select name from sys.cluster");
-        assertThat((String)response.rows()[0][0], is(CLUSTER_NAME));
+        SQLResponse response = execute("select name from sys.cluster");
+        assertThat((String) response.rows()[0][0], is(CLUSTER_NAME));
     }
 
     @Test
     public void testErrorTest() throws Exception {
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("line 1:1: no viable alternative at input 'wrong'");
-        testServer.execute("wrong");
+        execute("wrong");
     }
 }

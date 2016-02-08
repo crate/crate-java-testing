@@ -21,38 +21,35 @@
 
 package io.crate.integrationtests;
 
-import io.crate.shade.org.elasticsearch.common.io.FileSystemUtils;
 import io.crate.testing.CrateTestServer;
+import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 
-import java.io.File;
-
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
 
-public class FromUrlTest {
-
-    static {
-        File downloadFolder = new File(CrateTestServer.DEFAULT_WORKING_DIR, "/parts");
-        FileSystemUtils.deleteRecursively(downloadFolder, false);
-    }
+public class FromUrlTest extends BaseTest {
 
     private static final String CLUSTER_NAME = "from-uri";
-    private static final String VERSION = "0.53.0";
+    private static final String VERSION = "0.54.4";
 
     @ClassRule
     public static CrateTestServer fromUrlServer = CrateTestServer
             .fromURL(String.format("https://cdn.crate.io/downloads/releases/crate-%s.tar.gz", VERSION), CLUSTER_NAME);
 
+    @BeforeClass
+    public static void setUp() {
+        crateClient = crateClient(fromUrlServer.crateHost(), fromUrlServer.transportPort());
+    }
 
     @Test
     public void testFromUrl() throws Exception {
         assertThat(
-                (String) fromUrlServer.execute("select name from sys.cluster").rows()[0][0],
+                (String) execute("select name from sys.cluster").rows()[0][0],
                 is(CLUSTER_NAME));
         assertThat(
-                (String) fromUrlServer.execute("select version['number'] from sys.nodes").rows()[0][0],
+                (String) execute("select version['number'] from sys.nodes").rows()[0][0],
                 is(VERSION));
     }
+
 }

@@ -21,23 +21,17 @@
 
 package io.crate.testing;
 
-import io.crate.action.sql.SQLBulkRequest;
-import io.crate.action.sql.SQLBulkResponse;
-import io.crate.action.sql.SQLRequest;
-import io.crate.action.sql.SQLResponse;
 import io.crate.client.CrateClient;
 import io.crate.client.InternalCrateClient;
 import io.crate.shade.com.google.common.base.Joiner;
 import io.crate.shade.com.google.common.base.MoreObjects;
 import io.crate.shade.com.google.common.base.Preconditions;
 import io.crate.shade.org.elasticsearch.ElasticsearchTimeoutException;
-import io.crate.shade.org.elasticsearch.action.ActionFuture;
 import io.crate.shade.org.elasticsearch.client.transport.NoNodeAvailableException;
 import io.crate.shade.org.elasticsearch.client.transport.TransportClient;
 import io.crate.shade.org.elasticsearch.common.settings.ImmutableSettings;
 import io.crate.shade.org.elasticsearch.common.settings.Settings;
 import io.crate.shade.org.elasticsearch.common.transport.InetSocketTransportAddress;
-import io.crate.shade.org.elasticsearch.common.unit.TimeValue;
 import io.crate.testing.download.DownloadSource;
 import io.crate.testing.download.DownloadSources;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
@@ -45,25 +39,47 @@ import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
 import org.junit.rules.ExternalResource;
 
-import java.io.*;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.lang.reflect.Field;
 import java.net.InetAddress;
-import java.nio.file.*;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import static org.junit.Assert.assertFalse;
 
-public class CrateTestServer extends ExternalResource implements TestCluster {
+public class CrateTestServer extends ExternalResource {
 
-    public static final TimeValue DEFAULT_TIMEOUT = TimeValue.timeValueSeconds(10);
     public static final String DEFAULT_WORKING_DIR = System.getProperty("user.dir");
     public static final String CRATE_INSTANCES_DIR = "/parts";
 
-    public final int httpPort;
-    public final int transportPort;
-    public final String crateHost;
+    private final int httpPort;
+    private final int transportPort;
+    private final String crateHost;
     private final String workingDir;
     private final String clusterName;
     private final String[] unicastHosts;
@@ -141,8 +157,25 @@ public class CrateTestServer extends ExternalResource implements TestCluster {
 
         public CrateTestServer build() {
             Preconditions.checkArgument(downloadSource != null, "no download source given (version, git-ref, url, file)");
-            return new CrateTestServer(clusterName, downloadSource, httpPort, transportPort, workingDir, host, nodeSettings, unicastHosts.toArray(new String[unicastHosts.size()]));
+            return new CrateTestServer(clusterName, downloadSource, httpPort, transportPort, workingDir,
+                    host, nodeSettings, unicastHosts.toArray(new String[unicastHosts.size()]));
         }
+    }
+
+    public int httpPort() {
+        return httpPort;
+    }
+
+    public int transportPort() {
+        return transportPort;
+    }
+
+    public String crateHost() {
+        return crateHost;
+    }
+
+    public String clusterName() {
+        return clusterName;
     }
 
     /**
@@ -191,42 +224,6 @@ public class CrateTestServer extends ExternalResource implements TestCluster {
         this.nodeSettings = settings == null ? ImmutableSettings.EMPTY : settings;
     }
 
-    public SQLResponse execute(String statement) {
-        return execute(statement, SQLRequest.EMPTY_ARGS, DEFAULT_TIMEOUT);
-    }
-
-    public SQLResponse execute(String statement, TimeValue timeout) {
-        return execute(statement, SQLRequest.EMPTY_ARGS, timeout);
-    }
-
-    public SQLResponse execute(String statement, Object[] args) {
-        return execute(statement, args, DEFAULT_TIMEOUT);
-    }
-
-    public SQLResponse execute(String statement, Object[] args, TimeValue timeout) {
-        return crateClient.sql(new SQLRequest(statement, args)).actionGet(timeout);
-    }
-
-    public SQLBulkResponse execute(String statement, Object[][] bulkArgs) {
-        return execute(statement, bulkArgs, DEFAULT_TIMEOUT);
-    }
-
-    public SQLBulkResponse execute(String statement, Object[][] bulkArgs, TimeValue timeout) {
-        return crateClient.bulkSql(new SQLBulkRequest(statement, bulkArgs)).actionGet(timeout);
-    }
-
-    public ActionFuture<SQLResponse> executeAsync(String statement) {
-        return executeAsync(statement, SQLRequest.EMPTY_ARGS);
-    }
-
-    public ActionFuture<SQLResponse> executeAsync(String statement, Object[] args) {
-        return crateClient.sql(new SQLRequest(statement, args));
-    }
-
-    public ActionFuture<SQLBulkResponse> executeAsync(String statement, Object[][] bulkArgs) {
-        return crateClient.bulkSql(new SQLBulkRequest(statement, bulkArgs));
-    }
-
     private CrateClient ensureCrateClient() {
         if (crateClient == null) {
             crateClient = new CrateClient(ImmutableSettings.builder()
@@ -249,6 +246,10 @@ public class CrateTestServer extends ExternalResource implements TestCluster {
         return crateClient;
     }
 
+     CrateClient crateClient() {
+        return crateClient;
+    }
+
     private synchronized TransportClient ensureTransportClient() {
         if (transportClient == null) {
             Settings clientSettings = ImmutableSettings.builder()
@@ -260,14 +261,6 @@ public class CrateTestServer extends ExternalResource implements TestCluster {
             transportClient.addTransportAddress(new InetSocketTransportAddress(crateHost, transportPort));
         }
         return transportClient;
-    }
-
-    public void ensureYellow() {
-        ensureTransportClient().admin().cluster().prepareHealth().setWaitForYellowStatus().execute().actionGet();
-    }
-
-    public void ensureGreen() {
-        ensureTransportClient().admin().cluster().prepareHealth().setWaitForGreenStatus().execute().actionGet();
     }
 
     private static void uncompressTarGZ(File tarFile, File dest) throws IOException {

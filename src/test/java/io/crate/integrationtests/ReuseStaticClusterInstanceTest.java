@@ -22,25 +22,33 @@
 package io.crate.integrationtests;
 
 import io.crate.testing.CrateTestCluster;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 
-public class ReuseStaticClusterInstanceTest {
+public class ReuseStaticClusterInstanceTest extends BaseTest {
 
     private static final String CLUSTER_NAME = "static_cluster";
 
-    private static CrateTestCluster STATIC_CLUSTER = CrateTestCluster.cluster(CLUSTER_NAME, "0.52.2", 2);
+    private static CrateTestCluster STATIC_CLUSTER = CrateTestCluster.cluster(CLUSTER_NAME, "0.53.1", 2);
 
     private static AtomicReference<String> clusterId = new AtomicReference<>();
 
     @Rule
     public CrateTestCluster testCluster = STATIC_CLUSTER;
+
+    @Before
+    public void setUp() {
+        crateClient = crateClient(
+                STATIC_CLUSTER.randomServer().crateHost(),
+                STATIC_CLUSTER.randomServer().transportPort()
+        );
+    }
 
     @Test
     public void testMethod1() throws Exception {
@@ -59,7 +67,7 @@ public class ReuseStaticClusterInstanceTest {
     }
 
     private void executeTest() {
-        String localClusterId = (String)testCluster.execute("select id from sys.cluster").rows()[0][0];
+        String localClusterId = (String) execute("select id from sys.cluster").rows()[0][0];
 
         String otherClusterId = clusterId.getAndSet(localClusterId);
         if (otherClusterId != null) {

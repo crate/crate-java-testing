@@ -21,12 +21,9 @@
 
 package io.crate.testing;
 
-import io.crate.action.sql.SQLBulkResponse;
-import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
 import io.crate.shade.com.google.common.base.Preconditions;
 import io.crate.shade.com.google.common.collect.ImmutableList;
-import io.crate.shade.org.elasticsearch.action.ActionFuture;
 import io.crate.shade.org.elasticsearch.client.transport.NoNodeAvailableException;
 import io.crate.shade.org.elasticsearch.common.settings.ImmutableSettings;
 import io.crate.shade.org.elasticsearch.common.settings.Settings;
@@ -38,9 +35,16 @@ import org.junit.rules.ExternalResource;
 import java.net.InetAddress;
 import java.util.Collection;
 import java.util.Locale;
-import java.util.concurrent.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
-public class CrateTestCluster extends ExternalResource implements TestCluster {
+public class CrateTestCluster extends ExternalResource {
 
     private final int numberOfNodes;
     private final String clusterName;
@@ -52,7 +56,12 @@ public class CrateTestCluster extends ExternalResource implements TestCluster {
     private volatile CrateTestServer[] servers;
     private ExecutorService executor;
 
-    private CrateTestCluster(int numberOfNodes, String clusterName, String workingDir, DownloadSource downloadSource, Settings settings, String hostAddress) {
+    private CrateTestCluster(int numberOfNodes,
+                             String clusterName,
+                             String workingDir,
+                             DownloadSource downloadSource,
+                             Settings settings,
+                             String hostAddress) {
         this.numberOfNodes = numberOfNodes;
         this.clusterName = clusterName;
         this.workingDir = workingDir;
@@ -145,7 +154,7 @@ public class CrateTestCluster extends ExternalResource implements TestCluster {
     private CrateTestServer[] buildServers() {
         int transportPorts[] = new int[numberOfNodes];
         int httpPorts[] = new int[numberOfNodes];
-        for (int i = 0; i<numberOfNodes; i++) {
+        for (int i = 0; i < numberOfNodes; i++) {
             transportPorts[i] = Utils.randomAvailablePort();
             httpPorts[i] = Utils.randomAvailablePort();
         }
@@ -169,7 +178,7 @@ public class CrateTestCluster extends ExternalResource implements TestCluster {
 
     private static String[] getUnicastHosts(String hostAddress, int[] transportPorts) {
         String[] result = new String[transportPorts.length];
-        for (int i=0; i < transportPorts.length; i++) {
+        for (int i = 0; i < transportPorts.length; i++) {
             result[i] = String.format(Locale.ENGLISH, "%s:%d", hostAddress, transportPorts[i]);
         }
         return result;
@@ -186,7 +195,9 @@ public class CrateTestCluster extends ExternalResource implements TestCluster {
                     try {
                         long minNumNodes = Long.MAX_VALUE;
                         for (CrateTestServer server : localServers) {
-                            SQLResponse response = server.execute("select id from sys.nodes", TimeValue.timeValueMillis(timeoutMillis/10));
+                            SQLResponse response = server.crateClient()
+                                    .sql("select id from sys.nodes")
+                                    .actionGet(TimeValue.timeValueMillis(timeoutMillis / 10));
                             minNumNodes = Math.min(response.rowCount(), minNumNodes);
                         }
                         if (minNumNodes == numNodes) {
@@ -255,47 +266,4 @@ public class CrateTestCluster extends ExternalResource implements TestCluster {
         return ImmutableList.<CrateTestServer>builder().add(serversSafe()).build();
     }
 
-    public SQLResponse execute(String statement) {
-        return randomServer().execute(statement, SQLRequest.EMPTY_ARGS);
-    }
-
-    public SQLResponse execute(String statement, TimeValue timeout) {
-        return randomServer().execute(statement, SQLRequest.EMPTY_ARGS, timeout);
-    }
-
-    public SQLResponse execute(String statement, Object[] args) {
-        return randomServer().execute(statement, args);
-    }
-
-    public SQLResponse execute(String statement, Object[] args, TimeValue timeout) {
-        return randomServer().execute(statement, args, timeout);
-    }
-
-    public SQLBulkResponse execute(String statement, Object[][] bulkArgs) {
-        return randomServer().execute(statement, bulkArgs);
-    }
-
-    public SQLBulkResponse execute(String statement, Object[][] bulkArgs, TimeValue timeout) {
-        return randomServer().execute(statement, bulkArgs, timeout);
-    }
-
-    public ActionFuture<SQLResponse> executeAsync(String statement) {
-        return randomServer().executeAsync(statement);
-    }
-
-    public ActionFuture<SQLResponse> executeAsync(String statement, Object[] args) {
-        return randomServer().executeAsync(statement, args);
-    }
-
-    public ActionFuture<SQLBulkResponse> executeAsync(String statement, Object[][] bulkArgs) {
-        return randomServer().executeAsync(statement, bulkArgs);
-    }
-
-    public void ensureYellow() {
-        randomServer().ensureYellow();
-    }
-
-    public void ensureGreen() {
-        randomServer().ensureGreen();
-    }
 }

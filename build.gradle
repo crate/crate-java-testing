@@ -11,8 +11,6 @@ description = 'Crate Testing'
 
 group = "io.crate"
 
-archivesBaseName = "crate-testing"
-
 repositories {
     mavenCentral()
     jcenter()

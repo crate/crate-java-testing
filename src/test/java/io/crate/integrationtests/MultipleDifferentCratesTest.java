@@ -21,27 +21,19 @@
 
 package io.crate.integrationtests;
 
-import io.crate.shade.org.elasticsearch.common.io.FileSystemUtils;
 import io.crate.testing.CrateTestServer;
 import org.junit.ClassRule;
 import org.junit.Test;
 
-import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
 
-public class MultipleDifferentCratesTest {
-
-    static {
-        File downloadFolder = new File(CrateTestServer.DEFAULT_WORKING_DIR, "/parts");
-        FileSystemUtils.deleteRecursively(downloadFolder, false);
-    }
+public class MultipleDifferentCratesTest extends BaseTest {
 
     private static final String CLUSTER_NAME = "multiples";
-    private static final String FIRST_VERSION = "0.54.0";
+    private static final String FIRST_VERSION = "0.54.2";
     private static final String SECOND_VERSION = "0.54.1";
 
 
@@ -57,22 +49,26 @@ public class MultipleDifferentCratesTest {
             .clusterName(CLUSTER_NAME)
             .build();
 
+
     @Test
     public void testAgainstMultipleCrates() throws Exception {
         assertThat(Files.exists(Paths.get(String.format("parts/crate-%s", FIRST_VERSION))), is(true));
         assertThat(Files.exists(Paths.get(String.format("parts/crate-%s", SECOND_VERSION))), is(true));
+
+        crateClient = crateClient(SECOND_CLUSTER.crateHost(), SECOND_CLUSTER.transportPort());
         assertThat(
-                (String) SECOND_CLUSTER.execute("select name from sys.cluster").rows()[0][0],
+                (String) execute("select name from sys.cluster").rows()[0][0],
                 is(CLUSTER_NAME));
         assertThat(
-                (String) SECOND_CLUSTER.execute("select version['number'] from sys.nodes").rows()[0][0],
+                (String) execute("select version['number'] from sys.nodes").rows()[0][0],
                 is(SECOND_VERSION));
 
+        crateClient = crateClient(FIRST_CLUSTER.crateHost(), FIRST_CLUSTER.transportPort());
         assertThat(
-                (String) FIRST_CLUSTER.execute("select name from sys.cluster").rows()[0][0],
+                (String) execute("select name from sys.cluster").rows()[0][0],
                 is(CLUSTER_NAME));
         assertThat(
-                (String) FIRST_CLUSTER.execute("select version['number'] from sys.nodes").rows()[0][0],
+                (String) execute("select version['number'] from sys.nodes").rows()[0][0],
                 is(FIRST_VERSION));
 
     }

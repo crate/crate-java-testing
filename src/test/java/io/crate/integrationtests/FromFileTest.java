@@ -21,23 +21,15 @@
 
 package io.crate.integrationtests;
 
-import io.crate.shade.org.elasticsearch.common.io.FileSystemUtils;
 import io.crate.testing.CrateTestServer;
+import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 
-import java.io.File;
-
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
 
 
-public class FromFileTest {
-
-    static {
-        File downloadFolder = new File(CrateTestServer.DEFAULT_WORKING_DIR, "/parts");
-        FileSystemUtils.deleteRecursively(downloadFolder, false);
-    }
+public class FromFileTest extends BaseTest {
 
     private static final String CLUSTER_NAME = "from-file";
     private static final String VERSION = "0.53.0";
@@ -49,14 +41,18 @@ public class FromFileTest {
     @ClassRule
     public static CrateTestServer fromFileServer = CrateTestServer.fromFile(FILE, CLUSTER_NAME);
 
+    @BeforeClass
+    public static void setUp() {
+        crateClient = crateClient(fromFileServer.crateHost(), fromFileServer.transportPort());
+    }
 
     @Test
     public void testFromFile() throws Exception {
         assertThat(
-                (String) fromFileServer.execute("select name from sys.cluster").rows()[0][0],
+                (String) execute("select name from sys.cluster").rows()[0][0],
                 is(CLUSTER_NAME));
         assertThat(
-                (String) fromFileServer.execute("select version['number'] from sys.nodes").rows()[0][0],
+                (String) execute("select version['number'] from sys.nodes").rows()[0][0],
                 is(VERSION));
     }
 }
