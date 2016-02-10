@@ -28,7 +28,6 @@ import io.crate.shade.com.google.common.base.MoreObjects;
 import io.crate.shade.com.google.common.base.Preconditions;
 import io.crate.shade.org.elasticsearch.ElasticsearchTimeoutException;
 import io.crate.shade.org.elasticsearch.client.transport.NoNodeAvailableException;
-import io.crate.shade.org.elasticsearch.client.transport.TransportClient;
 import io.crate.shade.org.elasticsearch.common.settings.ImmutableSettings;
 import io.crate.shade.org.elasticsearch.common.settings.Settings;
 import io.crate.shade.org.elasticsearch.common.transport.InetSocketTransportAddress;
@@ -88,7 +87,6 @@ public class CrateTestServer extends ExternalResource {
 
     private ExecutorService executor;
     private CrateClient crateClient;
-    private TransportClient transportClient;
     private Process crateProcess;
 
     public static class Builder {
@@ -250,19 +248,6 @@ public class CrateTestServer extends ExternalResource {
         return crateClient;
     }
 
-    private synchronized TransportClient ensureTransportClient() {
-        if (transportClient == null) {
-            Settings clientSettings = ImmutableSettings.builder()
-                    .put("cluster.name", clusterName)
-                    // use a classloader to avoid shading hassle
-                    .classLoader(new ShadingClassLoader(getClass().getClassLoader()))
-                    .build();
-            transportClient = new TransportClient(clientSettings);
-            transportClient.addTransportAddress(new InetSocketTransportAddress(crateHost, transportPort));
-        }
-        return transportClient;
-    }
-
     private static void uncompressTarGZ(File tarFile, File dest) throws IOException {
         TarArchiveInputStream tarIn = new TarArchiveInputStream(
                 new GzipCompressorInputStream(
@@ -368,10 +353,6 @@ public class CrateTestServer extends ExternalResource {
         if (crateClient != null) {
             crateClient.close();
             crateClient = null;
-        }
-        if (transportClient != null) {
-            transportClient.close();
-            transportClient = null;
         }
     }
 
