@@ -116,37 +116,6 @@ and the number of nodes must be provided::
 As an alternative the static factory methods ``fromURL``, ``fromFile`` or
 ``fromVersion`` are available.
 
-The ``CrateTestCluster`` has the same API for executing SQL statements as the
-CrateTestServer.
-
-Issue SQL Requests
-==================
-
-``CrateTestServer`` and ``CrateTestCluster`` both implement the interface ``TestCluster``
-which provided the following methods::
-
-    SQLResponse execute(String statement);
-
-    SQLResponse execute(String statement, TimeValue timeout);
-
-    SQLResponse execute(String statement, Object[] args);
-
-    SQLResponse execute(String statement, Object[] args, TimeValue timeout);
-
-    SQLBulkResponse execute(String statement, Object[][] bulkArgs);
-
-    SQLBulkResponse execute(String statement, Object[][] bulkArgs, TimeValue timeout);
-
-    ActionFuture<SQLResponse> executeAsync(String statement);
-
-    ActionFuture<SQLResponse> executeAsync(String statement, Object[] args);
-
-    ActionFuture<SQLBulkResponse> executeAsync(String statement, Object[][] bulkArgs);
-
-    void ensureYellow();
-
-    void ensureGreen();
-
 
 .. _`Bintray`: https://bintray.com/crate/crate/
 
