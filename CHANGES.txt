@@ -5,6 +5,9 @@ Changes for Crate-Java-Testing
 Unreleased
 ==========
 
+2016/02/12 0.3.1
+================
+
  * add ``fromSysProperties`` static factory method to CrateTestCluster.
 
 2016/02/08 0.3.0
