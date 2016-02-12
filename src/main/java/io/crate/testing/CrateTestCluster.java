@@ -142,6 +142,21 @@ public class CrateTestCluster extends ExternalResource {
         return Builder.fromVersion(crateVersion);
     }
 
+    public static Builder fromSysProperties() {
+        String version = System.getProperty("crate.testing.from_version");
+        String url = System.getProperty("crate.testing.from_url");
+
+        if (version != null && !version.trim().isEmpty()) {
+            return Builder.fromVersion(version);
+        } else if (url != null && !url.trim().isEmpty()) {
+            return Builder.fromURL(url);
+        } else {
+            throw new RuntimeException("\"crate.testing.from_version\" " +
+                    "or \"crate.testing.from_version\" system property must be provided");
+        }
+    }
+
+
     public static CrateTestCluster cluster(String clusterName,
                                            String crateVersion,
                                            int numberOfNodes) {

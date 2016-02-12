@@ -93,7 +93,7 @@ Example usage in a java test::
     }
 
 It is recommended to use the static factory methods ``fromURL``,
-``fromFile`` or ``fromVersion`` on the ``CrateTestServer`` itself.
+``fromFile``, ``fromSysProperties`` or ``fromVersion`` on the ``CrateTestServer`` itself.
 This makes it possible to configure the server in many ways::
 
     @ClassRule
@@ -102,6 +102,11 @@ This makes it possible to configure the server in many ways::
                                                                      .transportPort(5200)
                                                                      .httpPort(5300)
                                                                      .build();
+
+When using ``fromSysProperties`` static factory method, either
+``crate.testing.from_version`` or ``crate.testing.from_url`` system property
+must be set. If both system properties are provided, then the
+``crate.testing.from_version`` property is used.
 
 Setting up a Cluster
 ====================

@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import io.crate.testing.CrateTestCluster;
+import io.crate.testing.CrateTestServer;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -44,10 +45,8 @@ public class ReuseStaticClusterInstanceTest extends BaseTest {
 
     @Before
     public void setUp() {
-        crateClient = crateClient(
-                STATIC_CLUSTER.randomServer().crateHost(),
-                STATIC_CLUSTER.randomServer().transportPort()
-        );
+        CrateTestServer server = testCluster.randomServer();
+        crateClient = crateClient(server.crateHost(), server.transportPort());
     }
 
     @Test
