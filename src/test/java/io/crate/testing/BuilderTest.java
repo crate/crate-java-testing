@@ -23,7 +23,9 @@ package io.crate.testing;
 
 import io.crate.action.sql.SQLResponse;
 import io.crate.integrationtests.BaseTest;
+import io.crate.shade.org.elasticsearch.common.io.FileSystemUtils;
 import io.crate.shade.org.elasticsearch.common.settings.ImmutableSettings;
+import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -72,6 +74,33 @@ public class BuilderTest extends BaseTest {
     }
 
     @Test
+    public void testBuilderKeepWorkingDir() throws Throwable {
+        CrateTestServer testServer = CrateTestServer
+                .fromVersion("0.52.0")
+                .keepWorkingDir(true)
+                .build();
+
+        testServer.before();
+        assertThat(testServer.crateWorkingDir().exists(), is(true));
+
+        testServer.after();
+        assertThat(testServer.crateWorkingDir().exists(), is(true));
+    }
+
+    @Test
+    public void testBuilderDoNotKeepWorkingDir() throws Throwable {
+        CrateTestServer testServer = CrateTestServer
+                .fromVersion("0.52.0")
+                .build();
+
+        testServer.before();
+        assertThat(testServer.crateWorkingDir().exists(), is(true));
+
+        testServer.after();
+        assertThat(testServer.crateWorkingDir().exists(), is(false));
+    }
+
+    @Test
     public void testNoURL() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("no download source given (version, git-ref, url, file)");
@@ -86,4 +115,9 @@ public class BuilderTest extends BaseTest {
                 .build();
     }
 
+    @After
+    public void TearDown() {
+        FileSystemUtils.deleteRecursively(CrateTestServer.TMP_WORKING_DIR, false);
+        FileSystemUtils.deleteRecursively(CrateTestServer.TMP_CACHE_DIR, false);
+    }
 }

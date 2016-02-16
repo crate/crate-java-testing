@@ -49,6 +49,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Field;
 import java.net.InetAddress;
+import java.net.MalformedURLException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -73,8 +74,11 @@ import static org.junit.Assert.assertFalse;
 
 public class CrateTestServer extends ExternalResource {
 
-    public static final String DEFAULT_WORKING_DIR = System.getProperty("user.dir");
-    public static final String CRATE_INSTANCES_DIR = "/parts";
+    private static final String TMP_DIR = System.getProperty("java.io.tmpdir");
+    private static final File CRATE_TMP_DIR = new File(TMP_DIR, "crate.testing");
+
+    public static final File TMP_CACHE_DIR = new File(CRATE_TMP_DIR, "downloads");
+    public static final File TMP_WORKING_DIR = new File(CRATE_TMP_DIR, "working");
 
     private final int httpPort;
     private final int transportPort;
@@ -84,6 +88,7 @@ public class CrateTestServer extends ExternalResource {
     private final String[] unicastHosts;
     private final DownloadSource downloadSource;
     private final Settings nodeSettings;
+    private final boolean keepWorkingDir;
 
     private ExecutorService executor;
     private CrateClient crateClient;
@@ -93,11 +98,12 @@ public class CrateTestServer extends ExternalResource {
         private String host = InetAddress.getLoopbackAddress().getHostAddress();
         private int httpPort = Utils.randomAvailablePort();
         private int transportPort = Utils.randomAvailablePort();
-        private String workingDir = DEFAULT_WORKING_DIR;
+        private String workingDir = TMP_WORKING_DIR.toString();
         private String clusterName = "Testing-" + transportPort;
         private List<String> unicastHosts = new ArrayList<>();
         private DownloadSource downloadSource = null;
         private Settings nodeSettings = ImmutableSettings.EMPTY;
+        private boolean keepWorkingDir = false;
 
         private Builder() {}
 
@@ -153,10 +159,15 @@ public class CrateTestServer extends ExternalResource {
             return this;
         }
 
+        public Builder keepWorkingDir(boolean keepWorkingDir) {
+            this.keepWorkingDir = keepWorkingDir;
+            return this;
+        }
+
         public CrateTestServer build() {
             Preconditions.checkArgument(downloadSource != null, "no download source given (version, git-ref, url, file)");
             return new CrateTestServer(clusterName, downloadSource, httpPort, transportPort, workingDir,
-                    host, nodeSettings, unicastHosts.toArray(new String[unicastHosts.size()]));
+                    host, nodeSettings, keepWorkingDir, unicastHosts.toArray(new String[unicastHosts.size()]));
         }
     }
 
@@ -205,13 +216,14 @@ public class CrateTestServer extends ExternalResource {
     }
 
     private CrateTestServer(String clusterName,
-                           DownloadSource downloadSource,
-                           int httpPort,
-                           int transportPort,
-                           String workingDir,
-                           String host,
-                           Settings settings,
-                           String ... unicastHosts) {
+                            DownloadSource downloadSource,
+                            int httpPort,
+                            int transportPort,
+                            String workingDir,
+                            String host,
+                            Settings settings,
+                            boolean keepCrateDir,
+                            String... unicastHosts) {
         this.clusterName = MoreObjects.firstNonNull(clusterName, "Testing-" + transportPort);
         this.downloadSource = downloadSource;
         this.crateHost = host;
@@ -220,6 +232,7 @@ public class CrateTestServer extends ExternalResource {
         this.unicastHosts = unicastHosts;
         this.workingDir = workingDir;
         this.nodeSettings = settings == null ? ImmutableSettings.EMPTY : settings;
+        this.keepWorkingDir = keepCrateDir;
     }
 
     private CrateClient ensureCrateClient() {
@@ -298,19 +311,35 @@ public class CrateTestServer extends ExternalResource {
     }
 
     private void downloadCrate() throws IOException {
-        File crateDir = downloadSource.folder(new File(workingDir, CRATE_INSTANCES_DIR));
-        if (crateDir.exists()) {
-            Utils.log("No need to download crate. already downloaded %s to %s", downloadSource, crateDir);
-            return;
-        }
-        Path downloadLocation = Files.createTempDirectory("crate-download");
-        Utils.log("Downloading Crate %s to: %s", downloadSource, crateDir);
+        TMP_CACHE_DIR.mkdirs();
+        TMP_WORKING_DIR.mkdirs();
 
-        try (InputStream in = downloadSource.downloadUrl().openStream()) {
-            Files.copy(in, downloadLocation, StandardCopyOption.REPLACE_EXISTING);
-            uncompressTarGZ(downloadLocation.toFile(), crateDir);
+        File crateTmpFile = new File(TMP_CACHE_DIR, fileNameFromDownloadSource(downloadSource));
+        File crateDir = crateWorkingDir();
+
+        if (crateTmpFile.exists()) {
+            Utils.log("No need to download crate. already downloaded %s to %s", downloadSource, crateDir);
+            if (!crateDir.exists()) {
+                uncompressTarGZ(crateTmpFile, crateDir);
+            }
+        } else {
+            crateTmpFile.createNewFile();
+
+            Utils.log("Downloading Crate %s to: %s", downloadSource, crateDir);
+            try (InputStream in = downloadSource.downloadUrl().openStream()) {
+                Files.copy(in, crateTmpFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                uncompressTarGZ(crateTmpFile, crateDir);
+            }
         }
-        downloadLocation.toFile().delete();
+    }
+
+    public File crateWorkingDir() {
+        return downloadSource.folder(new File(workingDir, TMP_WORKING_DIR.toString()));
+    }
+
+    private String fileNameFromDownloadSource(DownloadSource downloadSource) throws MalformedURLException {
+        String filePath = downloadSource.downloadUrl().getFile();
+        return filePath.substring(filePath.lastIndexOf("/") + 1);
     }
 
     @Override
@@ -333,8 +362,7 @@ public class CrateTestServer extends ExternalResource {
             try {
                 crateProcess.destroy();
                 crateProcess.waitFor();
-                wipeDataDirectory();
-                wipeLogs();
+                removeServerDir();
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -382,7 +410,7 @@ public class CrateTestServer extends ExternalResource {
             command
         );
         assert new File(workingDir).exists();
-        processBuilder.directory(downloadSource.folder(new File(workingDir, CRATE_INSTANCES_DIR)));
+        processBuilder.directory(crateWorkingDir());
         processBuilder.redirectErrorStream(true);
         crateProcess = processBuilder.start();
 
@@ -490,25 +518,12 @@ public class CrateTestServer extends ExternalResource {
 
     }
 
-    private void wipeDataDirectory() throws Exception {
-        File dataDir = resourceDirectory("data");
-        if (dataDir.exists()) {
-            deletePath(dataDir.toPath());
-            assertFalse(dataDir.exists());
+    private void removeServerDir() throws Exception {
+        File crateDir = crateWorkingDir();
+        if (crateDir.exists() && !keepWorkingDir) {
+            deletePath(crateDir.toPath());
+            assertFalse(crateDir.exists());
         }
-    }
-
-    private void wipeLogs() throws Exception {
-        File logDir = resourceDirectory("logs");
-        if (logDir.exists()) {
-            deletePath(logDir.toPath());
-            assertFalse(logDir.exists());
-        }
-    }
-
-    private File resourceDirectory(String resource) {
-        File parts = downloadSource.folder(new File(workingDir, CRATE_INSTANCES_DIR));
-        return new File(parts, resource);
     }
 
 }

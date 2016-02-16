@@ -52,6 +52,7 @@ public class CrateTestCluster extends ExternalResource {
     private final DownloadSource downloadSource;
     private final Settings settings;
     private final String hostAddress;
+    private final boolean keepWorkingDir;
 
     private volatile CrateTestServer[] servers;
     private ExecutorService executor;
@@ -61,13 +62,15 @@ public class CrateTestCluster extends ExternalResource {
                              String workingDir,
                              DownloadSource downloadSource,
                              Settings settings,
-                             String hostAddress) {
+                             String hostAddress,
+                             boolean keepWorkingDir) {
         this.numberOfNodes = numberOfNodes;
         this.clusterName = clusterName;
         this.workingDir = workingDir;
         this.downloadSource = downloadSource;
         this.settings = settings;
         this.hostAddress = hostAddress;
+        this.keepWorkingDir = keepWorkingDir;
         Preconditions.checkArgument(numberOfNodes > 0, "invalid number of nodes: "+ numberOfNodes);
         executor = Executors.newFixedThreadPool(1);
     }
@@ -78,9 +81,10 @@ public class CrateTestCluster extends ExternalResource {
 
         private int numberOfNodes = 2;
         private String clusterName = "TestingCluster";
-        private String workingDir = CrateTestServer.DEFAULT_WORKING_DIR;
+        private String workingDir = CrateTestServer.TMP_WORKING_DIR.toString();
         private Settings settings = ImmutableSettings.EMPTY;
         private String hostAddress = InetAddress.getLoopbackAddress().getHostAddress();
+        private boolean keepWorkingDir = false;
 
         private Builder(DownloadSource downloadSource) {
             this.downloadSource = downloadSource;
@@ -124,9 +128,14 @@ public class CrateTestCluster extends ExternalResource {
             return this;
         }
 
+        public Builder keepWorkingDir(boolean keepWorkingDir) {
+            this.keepWorkingDir = keepWorkingDir;
+            return this;
+        }
+
         public CrateTestCluster build() {
             Preconditions.checkArgument(clusterName != null, "no cluster name given");
-            return new CrateTestCluster(numberOfNodes, clusterName, workingDir, downloadSource, settings, hostAddress);
+            return new CrateTestCluster(numberOfNodes, clusterName, workingDir, downloadSource, settings, hostAddress, keepWorkingDir);
         }
     }
 
@@ -186,6 +195,7 @@ public class CrateTestCluster extends ExternalResource {
                     .transportPort(transportPorts[i])
                     .settings(settings)
                     .addUnicastHosts(unicastHosts)
+                    .keepWorkingDir(keepWorkingDir)
                     .build();
         }
         return servers;

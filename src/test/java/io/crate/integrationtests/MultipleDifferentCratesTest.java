@@ -25,9 +25,6 @@ import io.crate.testing.CrateTestServer;
 import org.junit.ClassRule;
 import org.junit.Test;
 
-import java.nio.file.Files;
-import java.nio.file.Paths;
-
 import static org.hamcrest.CoreMatchers.is;
 
 public class MultipleDifferentCratesTest extends BaseTest {
@@ -52,8 +49,8 @@ public class MultipleDifferentCratesTest extends BaseTest {
 
     @Test
     public void testAgainstMultipleCrates() throws Exception {
-        assertThat(Files.exists(Paths.get(String.format("parts/crate-%s", FIRST_VERSION))), is(true));
-        assertThat(Files.exists(Paths.get(String.format("parts/crate-%s", SECOND_VERSION))), is(true));
+        assertThat(FIRST_CLUSTER.crateWorkingDir().exists(), is(true));
+        assertThat(SECOND_CLUSTER.crateWorkingDir().exists(), is(true));
 
         crateClient = crateClient(SECOND_CLUSTER.crateHost(), SECOND_CLUSTER.transportPort());
         assertThat(

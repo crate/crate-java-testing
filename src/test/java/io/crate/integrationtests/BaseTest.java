@@ -34,14 +34,12 @@ import io.crate.shade.org.elasticsearch.common.unit.TimeValue;
 import io.crate.testing.CrateTestServer;
 import io.crate.testing.ShadingClassLoader;
 
-import java.io.File;
-
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public abstract class BaseTest extends RandomizedTest {
 
     static {
-        File downloadFolder = new File(CrateTestServer.DEFAULT_WORKING_DIR, "/parts");
-        FileSystemUtils.deleteRecursively(downloadFolder, false);
+        FileSystemUtils.deleteRecursively(CrateTestServer.TMP_WORKING_DIR, false);
+        FileSystemUtils.deleteRecursively(CrateTestServer.TMP_CACHE_DIR, false);
     }
 
     private static final TimeValue DEFAULT_TIMEOUT = TimeValue.timeValueSeconds(10);
