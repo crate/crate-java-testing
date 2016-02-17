@@ -21,7 +21,7 @@
 
 package io.crate.integrationtests;
 
-import io.crate.testing.CrateTestServer;
+import io.crate.testing.CrateTestCluster;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -32,7 +32,7 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.core.Is.is;
 
 /**
- * testing multiple starts and stops of a testserver
+ * testing multiple starts and stops of a crate test cluster
  * when used as a method rule.
  * <p/>
  * This is the same behaviour as using the testserver as static instance in an abstract superclass
@@ -43,17 +43,17 @@ public class ReuseServerInstanceTest extends BaseTest {
     private static final String CLUSTER_NAME = "rule";
     private static AtomicReference<String> clusterId = new AtomicReference<>();
 
-    static CrateTestServer STATIC_SERVER = CrateTestServer
+    static CrateTestCluster staticCluster = CrateTestCluster
             .fromVersion("0.54.0")
             .clusterName(CLUSTER_NAME)
             .build();
 
     @Rule
-    public final CrateTestServer testServer = STATIC_SERVER;
+    public final CrateTestCluster testServer = staticCluster;
 
     @Before
     public void setUp() {
-        crateClient = crateClient(STATIC_SERVER.crateHost(), STATIC_SERVER.transportPort());
+        crateClient = crateClient(staticCluster);
     }
 
     @Test
@@ -74,5 +74,5 @@ public class ReuseServerInstanceTest extends BaseTest {
             assertThat(localClusterId, is(not(otherClusterId)));
         }
     }
-}
 
+}

@@ -5,6 +5,11 @@ Changes for Crate-Java-Testing
 Unreleased
 ==========
 
+ * BREAKING CHANGE: remove shaded crate client from crate testing server
+   and cluster.
+
+ * remove deprecated static ``build`` method from crate test server.
+
  * make crate instance directory configurable for removal after
    test servers are stopped.
 

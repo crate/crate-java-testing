@@ -23,19 +23,22 @@ package io.crate.testing;
 
 import io.crate.action.sql.SQLResponse;
 import io.crate.integrationtests.BaseTest;
-import io.crate.shade.org.elasticsearch.common.settings.ImmutableSettings;
+import io.crate.shade.org.elasticsearch.common.io.FileSystemUtils;
+import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import java.io.File;
 import java.util.Collection;
+import java.util.HashMap;
 
 import static org.hamcrest.core.Is.is;
 
 public class ClusterTest extends BaseTest {
 
     private static final String CLUSTER_NAME = "cluster";
-    private static final String VERSION = "0.52.1";
+    private static final String VERSION = "0.52.0";
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
@@ -44,28 +47,27 @@ public class ClusterTest extends BaseTest {
     public void testClusterBuilder() throws Throwable {
         CrateTestCluster cluster = CrateTestCluster.fromVersion(VERSION)
                 .clusterName(CLUSTER_NAME)
-                .numberOfNodes(3)
-                .settings(ImmutableSettings.builder()
-                        .put("stats.enabled", true)
-                        .build())
+                .numberOfNodes(2)
+                .settings(new HashMap<String, Object>() {{
+                    put("stats.enabled", true);
+                }})
                 .build();
 
         try {
             cluster.before();
+            crateClient = crateClient(cluster);
             Collection<CrateTestServer> servers = cluster.servers();
-            assertThat(servers.size(), is(3));
+            assertThat(servers.size(), is(2));
             for (CrateTestServer server : servers) {
-                crateClient = crateClient(server.crateHost(), server.transportPort());
-
                 SQLResponse response = execute("select version['number'] from sys.nodes");
-                assertThat(response.rowCount(), is(3L));
+                assertThat(response.rowCount(), is(2L));
                 assertThat((String) response.rows()[0][0], is(VERSION));
-
 
                 SQLResponse clusterResponse = execute("select name, settings['stats']['enabled'] from sys.cluster");
                 assertThat((String) clusterResponse.rows()[0][0], is(CLUSTER_NAME));
 
                 assertThat(String.valueOf(clusterResponse.rows()[0][1]), is("true"));
+
                 ensureGreen(server);
                 ensureYellow(server);
             }
@@ -75,16 +77,49 @@ public class ClusterTest extends BaseTest {
     }
 
     @Test
+    public void testBuilderKeepWorkingDir() throws Throwable {
+        CrateTestCluster testCluster = CrateTestCluster
+                .fromVersion("0.52.0")
+                .keepWorkingDir(true)
+                .build();
+
+        testCluster.before();
+        File workingDir = testCluster.randomServer().crateWorkingDir();
+        assertThat(workingDir.exists(), is(true));
+
+        testCluster.after();
+        assertThat(workingDir.exists(), is(true));
+    }
+
+    @Test
+    public void testBuilderDoNotKeepWorkingDir() throws Throwable {
+        CrateTestCluster testCluster = CrateTestCluster
+                .fromVersion("0.52.0")
+                .build();
+
+        testCluster.before();
+        File workingDir = testCluster.randomServer().crateWorkingDir();
+        assertThat(workingDir.exists(), is(true));
+
+        testCluster.after();
+    }
+
+    @Test
     public void testNoNodes() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("invalid number of nodes: 0");
         CrateTestCluster.fromVersion(VERSION)
                 .clusterName(CLUSTER_NAME)
                 .numberOfNodes(0)
-                .settings(ImmutableSettings.builder()
-                        .put("stats.enabled", true)
-                        .build())
+                .settings(new HashMap<String, Object>() {{
+                    put("stats.enabled", true);
+                }})
                 .build();
     }
-    
+
+    @After
+    public void tearDown() {
+        FileSystemUtils.deleteRecursively(CrateTestServer.TMP_WORKING_DIR, false);
+    }
+
 }

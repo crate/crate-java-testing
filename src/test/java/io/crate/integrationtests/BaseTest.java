@@ -31,8 +31,8 @@ import io.crate.shade.org.elasticsearch.common.io.FileSystemUtils;
 import io.crate.shade.org.elasticsearch.common.settings.ImmutableSettings;
 import io.crate.shade.org.elasticsearch.common.transport.InetSocketTransportAddress;
 import io.crate.shade.org.elasticsearch.common.unit.TimeValue;
+import io.crate.testing.CrateTestCluster;
 import io.crate.testing.CrateTestServer;
-import io.crate.testing.ShadingClassLoader;
 
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public abstract class BaseTest extends RandomizedTest {
@@ -45,10 +45,10 @@ public abstract class BaseTest extends RandomizedTest {
     private static final TimeValue DEFAULT_TIMEOUT = TimeValue.timeValueSeconds(10);
 
     protected static CrateClient crateClient;
-    private static TransportClient transportClient;
 
-    protected static CrateClient crateClient(String host, int port) {
-        return new CrateClient(String.format("%s:%d", host, port));
+    protected static CrateClient crateClient(CrateTestCluster crateCluster) {
+        CrateTestServer crateTestServer = crateCluster.randomServer();
+        return new CrateClient(String.format("%s:%d", crateTestServer.crateHost(), crateTestServer.transportPort()));
     }
 
     protected SQLResponse execute(String statement) {
@@ -68,9 +68,8 @@ public abstract class BaseTest extends RandomizedTest {
     }
 
     private TransportClient ensureTransportClient(CrateTestServer server) {
-        transportClient = new TransportClient(ImmutableSettings.builder()
+        TransportClient transportClient = new TransportClient(ImmutableSettings.builder()
                 .put("cluster.name", server.clusterName())
-                .classLoader(new ShadingClassLoader(getClass().getClassLoader()))
                 .build());
         transportClient.addTransportAddress(
                 new InetSocketTransportAddress(server.crateHost(), server.transportPort())

@@ -21,52 +21,40 @@
 
 package io.crate.integrationtests;
 
-import io.crate.testing.CrateTestServer;
+import io.crate.testing.CrateTestCluster;
 import org.junit.ClassRule;
 import org.junit.Test;
 
-import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.core.Is.is;
 
 public class MultipleDifferentCratesTest extends BaseTest {
 
-    private static final String CLUSTER_NAME = "multiples";
+    private static final String CLUSTER_NAME_FIRST = "multiples-1";
+    private static final String CLUSTER_NAME_SECOND = "multiples-2";
     private static final String FIRST_VERSION = "0.54.2";
     private static final String SECOND_VERSION = "0.54.1";
 
-
     @ClassRule
-    public static CrateTestServer FIRST_CLUSTER = CrateTestServer
+    public static CrateTestCluster FIRST_CLUSTER = CrateTestCluster
             .fromVersion(FIRST_VERSION)
-            .clusterName(CLUSTER_NAME)
+            .clusterName(CLUSTER_NAME_FIRST)
             .build();
 
     @ClassRule
-    public static CrateTestServer SECOND_CLUSTER = CrateTestServer
+    public static CrateTestCluster SECOND_CLUSTER = CrateTestCluster
             .fromVersion(SECOND_VERSION)
-            .clusterName(CLUSTER_NAME)
+            .clusterName(CLUSTER_NAME_SECOND)
             .build();
-
 
     @Test
     public void testAgainstMultipleCrates() throws Exception {
-        assertThat(FIRST_CLUSTER.crateWorkingDir().exists(), is(true));
-        assertThat(SECOND_CLUSTER.crateWorkingDir().exists(), is(true));
+        crateClient = crateClient(SECOND_CLUSTER);
+        assertThat((String) execute("select name from sys.cluster").rows()[0][0], is(CLUSTER_NAME_SECOND));
+        assertThat((String) execute("select version['number'] from sys.nodes").rows()[0][0], is(SECOND_VERSION));
 
-        crateClient = crateClient(SECOND_CLUSTER.crateHost(), SECOND_CLUSTER.transportPort());
-        assertThat(
-                (String) execute("select name from sys.cluster").rows()[0][0],
-                is(CLUSTER_NAME));
-        assertThat(
-                (String) execute("select version['number'] from sys.nodes").rows()[0][0],
-                is(SECOND_VERSION));
-
-        crateClient = crateClient(FIRST_CLUSTER.crateHost(), FIRST_CLUSTER.transportPort());
-        assertThat(
-                (String) execute("select name from sys.cluster").rows()[0][0],
-                is(CLUSTER_NAME));
-        assertThat(
-                (String) execute("select version['number'] from sys.nodes").rows()[0][0],
-                is(FIRST_VERSION));
-
+        crateClient = crateClient(FIRST_CLUSTER);
+        assertThat((String) execute("select name from sys.cluster").rows()[0][0], is(CLUSTER_NAME_FIRST));
+        assertThat((String) execute("select version['number'] from sys.nodes").rows()[0][0], is(FIRST_VERSION));
     }
+
 }

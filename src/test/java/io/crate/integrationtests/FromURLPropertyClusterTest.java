@@ -22,9 +22,8 @@
 package io.crate.integrationtests;
 
 import io.crate.testing.CrateTestCluster;
-import io.crate.testing.CrateTestServer;
 import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 
@@ -48,10 +47,9 @@ public class FromURLPropertyClusterTest extends BaseTest {
             .numberOfNodes(2)
             .build();
 
-    @BeforeClass
-    public static void init() {
-        CrateTestServer server = fromSettingsCluster.randomServer();
-        crateClient = crateClient(server.crateHost(), server.transportPort());
+    @Before
+    public void setUp() {
+        crateClient = crateClient(fromSettingsCluster);
     }
 
     @Test

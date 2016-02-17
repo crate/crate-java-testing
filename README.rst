@@ -69,57 +69,33 @@ overview page by clicking the "Set me up!" button.
 CrateTestServer Class
 =====================
 
-The Crate Test Server class is ``io.crate.testing.CrateTestServer``.
-``CrateTestServer`` extends
-from ``org.junit.rules.ExternalResources``.
-Once it's initalized as a junit ``ClassRule`` it will start Crate at the beginning of the
-test run. If crate is not already downloaded, it will be downloaded and extracted.
-It's required to provide at least a ``cluster name`` and the crate version as
- a string. If the ``cluster name`` is null, a cluster name will be generated.
+The Crate Test Server class is ``io.crate.testing.CrateTestCluster``.
+``CrateTestCluster`` extends from ``org.junit.rules.ExternalResources``.
+Once it's initalized as a junit ``ClassRule`` it will start Crate at the
+beginning of the test run. If crate is not already downloaded, it will be
+downloaded and extracted. In order to start  ``CrateTestCluster`` use static
+factory methods ``fromURL``,  ``fromFile``, ``fromSysProperties`` or
+``fromVersion``. This makes it possible to configure the server in many ways::
 
 Example usage in a java test::
 
     @ClassRule
-    public static final CrateTestServer testServer = new CrateTestServer("crate-test-cluster", "0.52.2");
+    public static final CrateTestCluster TEST_CLUSTER = CrateTestCluster.fromVersion("0.52.4")
+                                                                        .clusterName("with-builder")
+                                                                        .numberOfNodes(3)
+                                                                        .build();
 
-
-    @Test
-    public void testSimpleTest() {
-        testServer.execute("create table test (foo string)");
-        testServer.execute("insert into test (foo) values ('bar')");
-        testServer.execute("refresh table test");
-        SQLResponse response = testServer.execute("select * from test");
-        assertThat(response.rowCount(), is(1L));
-    }
-
-It is recommended to use the static factory methods ``fromURL``,
-``fromFile``, ``fromSysProperties`` or ``fromVersion`` on the ``CrateTestServer`` itself.
-This makes it possible to configure the server in many ways::
+or simply use one of the static methods. The cluster name will be generated
+and the default number of nodes, which is equals 1, will be used::
 
     @ClassRule
-    public static final CrateTestServer TEST_SERVER = CrateTestServer.fromVersion("0.52.4")
-                                                                     .clusterName("with-builder")
-                                                                     .transportPort(5200)
-                                                                     .httpPort(5300)
-                                                                     .build();
+    public static final CrateTestCluster TEST_CLUSTER = CrateTestCluster.fromVersion("0.52.2")
+                                                                       .build();
 
 When using ``fromSysProperties`` static factory method, either
 ``crate.testing.from_version`` or ``crate.testing.from_url`` system property
 must be set. If both system properties are provided, then the
 ``crate.testing.from_version`` property is used.
-
-Setting up a Cluster
-====================
-
-It's also possible to set up a crate cluster by using the CrateTestCluster class.
-Using the static ``.cluster(...)`` method, a ``cluster name``, the crate version
-and the number of nodes must be provided::
-
-    @ClassRule
-    public static CrateTestCluster cluster = CrateTestCluster.cluster("myCluster", "0.52.2", 3)
-
-As an alternative the static factory methods ``fromURL``, ``fromFile`` or
-``fromVersion`` are available.
 
 
 .. _`Bintray`: https://bintray.com/crate/crate/

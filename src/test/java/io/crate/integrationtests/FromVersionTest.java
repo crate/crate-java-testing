@@ -21,8 +21,8 @@
 
 package io.crate.integrationtests;
 
-import io.crate.testing.CrateTestServer;
-import org.junit.BeforeClass;
+import io.crate.testing.CrateTestCluster;
+import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 
@@ -34,23 +34,20 @@ public class FromVersionTest extends BaseTest {
     private static final String VERSION = "0.54.3";
 
     @ClassRule
-    public static CrateTestServer fromVersionServer = CrateTestServer
+    public static CrateTestCluster fromVersionCluster = CrateTestCluster
             .fromVersion(VERSION)
             .clusterName(CLUSTER_NAME)
             .build();
 
-    @BeforeClass
-    public static void setUp() {
-        crateClient = crateClient(fromVersionServer.crateHost(), fromVersionServer.transportPort());
+    @Before
+    public void setUp() {
+        crateClient = crateClient(fromVersionCluster);
     }
 
     @Test
     public void testFromVersion() throws Exception {
-        assertThat(
-                (String) execute("select name from sys.cluster").rows()[0][0],
-                is(CLUSTER_NAME));
-        assertThat(
-                (String) execute("select version['number'] from sys.nodes").rows()[0][0],
-                is(VERSION));
+        assertThat((String) execute("select name from sys.cluster").rows()[0][0], is(CLUSTER_NAME));
+        assertThat((String) execute("select version['number'] from sys.nodes").rows()[0][0], is(VERSION));
     }
+
 }

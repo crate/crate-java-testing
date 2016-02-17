@@ -22,7 +22,6 @@
 package io.crate.integrationtests;
 
 import io.crate.testing.CrateTestCluster;
-import io.crate.testing.CrateTestServer;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -36,7 +35,10 @@ public class ReuseStaticClusterInstanceTest extends BaseTest {
 
     private static final String CLUSTER_NAME = "static_cluster";
 
-    private static CrateTestCluster STATIC_CLUSTER = CrateTestCluster.cluster(CLUSTER_NAME, "0.53.1", 2);
+    private static CrateTestCluster STATIC_CLUSTER = CrateTestCluster
+            .fromVersion("0.53.1")
+            .clusterName(CLUSTER_NAME)
+            .build();
 
     private static AtomicReference<String> clusterId = new AtomicReference<>();
 
@@ -45,8 +47,7 @@ public class ReuseStaticClusterInstanceTest extends BaseTest {
 
     @Before
     public void setUp() {
-        CrateTestServer server = testCluster.randomServer();
-        crateClient = crateClient(server.crateHost(), server.transportPort());
+        crateClient = crateClient(testCluster);
     }
 
     @Test
@@ -73,4 +74,5 @@ public class ReuseStaticClusterInstanceTest extends BaseTest {
             assertThat(localClusterId, is(not(otherClusterId)));
         }
     }
+
 }

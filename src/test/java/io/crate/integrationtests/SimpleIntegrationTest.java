@@ -23,8 +23,8 @@ package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLResponse;
-import io.crate.testing.CrateTestServer;
-import org.junit.BeforeClass;
+import io.crate.testing.CrateTestCluster;
+import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
@@ -37,7 +37,7 @@ public class SimpleIntegrationTest extends BaseTest {
     private static final String CLUSTER_NAME = "crate-java-testing";
 
     @ClassRule
-    public static final CrateTestServer testServer = CrateTestServer
+    public static final CrateTestCluster testCluster = CrateTestCluster
             .fromVersion("0.53.0")
             .clusterName(CLUSTER_NAME)
             .build();
@@ -45,9 +45,9 @@ public class SimpleIntegrationTest extends BaseTest {
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
-    @BeforeClass
-    public static void setUp() {
-        crateClient = crateClient(testServer.crateHost(), testServer.transportPort());
+    @Before
+    public void setUp() {
+        crateClient = crateClient(testCluster);
     }
 
     @Test
@@ -70,4 +70,5 @@ public class SimpleIntegrationTest extends BaseTest {
         expectedException.expectMessage("line 1:1: no viable alternative at input 'wrong'");
         execute("wrong");
     }
+
 }

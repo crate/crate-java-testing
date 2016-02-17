@@ -21,8 +21,8 @@
 
 package io.crate.integrationtests;
 
-import io.crate.testing.CrateTestServer;
-import org.junit.BeforeClass;
+import io.crate.testing.CrateTestCluster;
+import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 
@@ -39,20 +39,20 @@ public class FromFileTest extends BaseTest {
             .getPath();
 
     @ClassRule
-    public static CrateTestServer fromFileServer = CrateTestServer.fromFile(FILE, CLUSTER_NAME);
+    public static CrateTestCluster fromFileCluster = CrateTestCluster
+            .fromFile(FILE)
+            .clusterName(CLUSTER_NAME)
+            .build();
 
-    @BeforeClass
-    public static void setUp() {
-        crateClient = crateClient(fromFileServer.crateHost(), fromFileServer.transportPort());
+    @Before
+    public void setUp() {
+        crateClient = crateClient(fromFileCluster);
     }
 
     @Test
     public void testFromFile() throws Exception {
-        assertThat(
-                (String) execute("select name from sys.cluster").rows()[0][0],
-                is(CLUSTER_NAME));
-        assertThat(
-                (String) execute("select version['number'] from sys.nodes").rows()[0][0],
-                is(VERSION));
+        assertThat((String) execute("select name from sys.cluster").rows()[0][0], is(CLUSTER_NAME));
+        assertThat((String) execute("select version['number'] from sys.nodes").rows()[0][0], is(VERSION));
     }
+
 }
