@@ -68,6 +68,8 @@ public class BuilderTest extends BaseTest {
             ensureYellow(testServer);
             ensureGreen(testServer);
 
+        }      catch (Exception e) {
+            e.printStackTrace();
         } finally {
             testServer.after();
         }
@@ -104,7 +106,7 @@ public class BuilderTest extends BaseTest {
     public void testNoURL() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("no download source given (version, git-ref, url, file)");
-        CrateTestServer.builder()
+        new CrateTestServer.Builder()
                 .clusterName("mycluster")
                 .host("127.0.0.1")
                 .httpPort(12345)

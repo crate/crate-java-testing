@@ -5,6 +5,8 @@ Changes for Crate-Java-Testing
 Unreleased
 ==========
 
+ * remove deprecated builder() method from CrateTestServer.
+
  * make crate instance directory configurable for removal after
    test servers are stopped.
 

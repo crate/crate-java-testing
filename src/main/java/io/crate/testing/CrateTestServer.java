@@ -105,7 +105,7 @@ public class CrateTestServer extends ExternalResource {
         private Settings nodeSettings = ImmutableSettings.EMPTY;
         private boolean keepWorkingDir = false;
 
-        private Builder() {}
+        Builder() {}
 
         public static Builder fromURL(String url) {
             return new Builder().fromDownloadSource(DownloadSources.URL(url));
@@ -185,14 +185,6 @@ public class CrateTestServer extends ExternalResource {
 
     public String clusterName() {
         return clusterName;
-    }
-
-    /**
-     * @deprecated use {@link #fromURL(String)}
-     */
-    @Deprecated()
-    public static Builder builder() {
-        return new Builder();
     }
 
     public static Builder fromURL(String url) {
@@ -285,7 +277,6 @@ public class CrateTestServer extends ExternalResource {
 
             Path strippedPath = entryPath.subpath(1, entryPath.getNameCount());
             File destPath = new File(dest, strippedPath.toString());
-            Utils.log("extract: %s", destPath.getCanonicalPath());
 
             if (tarEntry.isDirectory()) {
                 destPath.mkdirs();

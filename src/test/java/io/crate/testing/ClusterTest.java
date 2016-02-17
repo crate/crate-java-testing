@@ -69,7 +69,11 @@ public class ClusterTest extends BaseTest {
                 ensureGreen(server);
                 ensureYellow(server);
             }
-        } finally {
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+        finally {
             cluster.after();
         }
     }
