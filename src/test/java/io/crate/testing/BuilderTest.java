@@ -68,6 +68,8 @@ public class BuilderTest extends BaseTest {
             ensureYellow(testServer);
             ensureGreen(testServer);
 
+        }      catch (Exception e) {
+            e.printStackTrace();
         } finally {
             testServer.after();
         }
