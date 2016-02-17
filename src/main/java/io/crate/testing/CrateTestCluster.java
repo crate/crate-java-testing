@@ -186,7 +186,7 @@ public class CrateTestCluster extends ExternalResource {
 
         String[] unicastHosts = getUnicastHosts(hostAddress, transportPorts);
         for (int i = 0; i < numberOfNodes; i++) {
-            servers[i] = CrateTestServer.builder()
+            servers[i] = new CrateTestServer.Builder()
                     .clusterName(clusterName)
                     .fromDownloadSource(downloadSource)
                     .workingDir(workingDir)
