@@ -78,12 +78,16 @@ sourceSets {
     }
 }
 
-task buildJar(dependsOn: [getVersion]) {
+jar.dependsOn getVersion
+jar {
+    baseName 'crate-testing'
     doLast {
-        ext.version= project.version
+        ext.version = project.version
+        manifest {
+            attributes("Implementation-Title": "Crate.IO Testing", "Implementation-Version": project.version)
+        }
     }
 }
-tasks.buildJar.mustRunAfter jar // otherwise jar task would override shadowJar artifact
 
 task myJavadocs(type: Javadoc, dependsOn: processResources) {
     classpath = configurations.compile
@@ -116,11 +120,12 @@ task buildSourceJar (dependsOn: [getVersion] ) << {
 
 
 artifacts {
+    archives jar
     archives javadocJar
     archives sourceJar
 }
 
-task signJars (type : Sign, dependsOn: [buildJar, buildJavadocJar, buildSourceJar]) {
+task signJars (type : Sign, dependsOn: [jar, buildJavadocJar, buildSourceJar]) {
     sign configurations.archives
 }
 
