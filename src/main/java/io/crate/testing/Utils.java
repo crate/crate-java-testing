@@ -21,11 +21,21 @@
 
 package io.crate.testing;
 
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
+import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
+import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
+
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.security.MessageDigest;
@@ -52,7 +62,7 @@ public class Utils {
         System.out.println(String.format(Locale.ENGLISH, message, params));
     }
 
-    public static void deletePath(Path path) throws Exception {
+    static void deletePath(Path path) throws IOException {
         Files.walkFileTree(path, new SimpleFileVisitor<Path>() {
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
@@ -82,7 +92,7 @@ public class Utils {
         return stringBuilder.toString();
     }
 
-    public static <T> String join(T[] items, String on) {
+    static <T> String join(T[] items, String on) {
         StringBuilder sb = new StringBuilder();
         for (T item : items) {
             if (sb.length() > 0) {
@@ -94,13 +104,59 @@ public class Utils {
     }
 
     @SafeVarargs
-    public static <T> T firstNonNull(T... items) {
+    static <T> T firstNonNull(T... items) {
         for (T item : items) {
             if (item != null) {
                 return item;
             }
         }
         return null;
+    }
+
+    static void uncompressTarGZ(File tarFile, File dest) throws IOException {
+        TarArchiveInputStream tarIn = new TarArchiveInputStream(
+                new GzipCompressorInputStream(
+                        new BufferedInputStream(
+                                new FileInputStream(
+                                        tarFile
+                                )
+                        )
+                )
+        );
+
+        TarArchiveEntry tarEntry = tarIn.getNextTarEntry();
+        // tarIn is a TarArchiveInputStream
+        while (tarEntry != null) {
+            Path entryPath = Paths.get(tarEntry.getName());
+
+            if (entryPath.getNameCount() == 1) {
+                tarEntry = tarIn.getNextTarEntry();
+                continue;
+            }
+
+            Path strippedPath = entryPath.subpath(1, entryPath.getNameCount());
+            File destPath = new File(dest, strippedPath.toString());
+
+            if (tarEntry.isDirectory()) {
+                destPath.mkdirs();
+            } else {
+                destPath.createNewFile();
+                byte[] btoRead = new byte[1024];
+                BufferedOutputStream bout =
+                        new BufferedOutputStream(new FileOutputStream(destPath));
+                int len;
+                while ((len = tarIn.read(btoRead)) != -1) {
+                    bout.write(btoRead, 0, len);
+                }
+
+                bout.close();
+                if (destPath.getParent().equals(dest.getPath() + "/bin")) {
+                    destPath.setExecutable(true);
+                }
+            }
+            tarEntry = tarIn.getNextTarEntry();
+        }
+        tarIn.close();
     }
 
 }

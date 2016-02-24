@@ -32,7 +32,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Locale;
 
-class FileDownloadSource implements DownloadSource {
+public class FileDownloadSource implements DownloadSource {
 
     public static final String FOLDER_PREFIX = "crate-file-%s";
 

@@ -23,13 +23,15 @@ package io.crate.testing;
 
 import io.crate.action.sql.SQLResponse;
 import io.crate.integrationtests.BaseTest;
-import io.crate.shade.org.elasticsearch.common.io.FileSystemUtils;
-import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.HashMap;
 
@@ -84,11 +86,11 @@ public class ClusterTest extends BaseTest {
                 .build();
 
         testCluster.before();
-        File workingDir = testCluster.randomServer().crateWorkingDir();
-        assertThat(workingDir.exists(), is(true));
+        Path workingPath = testCluster.crateWorkingDir();
+        assertThat(Files.exists(workingPath), is(true));
 
         testCluster.after();
-        assertThat(workingDir.exists(), is(true));
+        assertThat(Files.exists(workingPath), is(true));
     }
 
     @Test
@@ -98,10 +100,30 @@ public class ClusterTest extends BaseTest {
                 .build();
 
         testCluster.before();
-        File workingDir = testCluster.randomServer().crateWorkingDir();
-        assertThat(workingDir.exists(), is(true));
+        assertThat(Files.exists(testCluster.crateWorkingDir()), is(true));
 
         testCluster.after();
+    }
+
+    @Test
+    public void testSetWorkingDir() throws Throwable {
+        Path actualCratePath = Paths.get(System.getProperty("user.dir"), "crate.testing");
+        assertThat(Files.exists(actualCratePath), is(false));
+
+        CrateTestCluster testCluster = CrateTestCluster.fromVersion(VERSION)
+                .clusterName(CLUSTER_NAME)
+                .workingDir(actualCratePath)
+                .build();
+
+        testCluster.before();
+        Path workingPath = testCluster.crateWorkingDir();
+        assertThat(workingPath.startsWith(actualCratePath), is(true));
+
+        testCluster.after();
+        assertThat(Files.exists(workingPath), is(false));
+
+        // clean up
+        Utils.deletePath(actualCratePath);
     }
 
     @Test
@@ -117,9 +139,9 @@ public class ClusterTest extends BaseTest {
                 .build();
     }
 
-    @After
-    public void tearDown() {
-        FileSystemUtils.deleteRecursively(CrateTestServer.TMP_WORKING_DIR, false);
+    @AfterClass
+    public static void tearDown() throws IOException {
+        Utils.deletePath(CrateTestCluster.TMP_WORKING_DIR);
     }
 
 }

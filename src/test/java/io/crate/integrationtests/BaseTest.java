@@ -38,8 +38,8 @@ import io.crate.testing.CrateTestServer;
 public abstract class BaseTest extends RandomizedTest {
 
     static {
-        FileSystemUtils.deleteRecursively(CrateTestServer.TMP_WORKING_DIR, false);
-        FileSystemUtils.deleteRecursively(CrateTestServer.TMP_CACHE_DIR, false);
+        FileSystemUtils.deleteRecursively(CrateTestCluster.TMP_WORKING_DIR.toFile(), false);
+        FileSystemUtils.deleteRecursively(CrateTestCluster.TMP_CACHE_DIR.toFile(), false);
     }
 
     private static final TimeValue DEFAULT_TIMEOUT = TimeValue.timeValueSeconds(10);
