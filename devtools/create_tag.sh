@@ -53,6 +53,10 @@ then
 fi
 
 # get the version
+echo "Getting version ..."
+VERSION=`./gradlew getVersion | grep version | awk '{print $2;}' | cut -d '-' -f1`
+echo "$VERSION"
+
 if [ "${VERSION}x" == "x" ]
 then
     echo "VERSION not provided"
