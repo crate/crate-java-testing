@@ -40,12 +40,7 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Locale;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeoutException;
 
@@ -190,15 +185,15 @@ public class CrateTestCluster extends ExternalResource {
 
         String[] unicastHosts = getUnicastHosts(hostAddress, transportPorts);
         for (int i = 0; i < numberOfNodes; i++) {
-            servers[i] = new CrateTestServer.Builder()
-                    .clusterName(clusterName)
-                    .workingDir(crateWorkingDir())
-                    .host(hostAddress)
-                    .httpPort(httpPorts[i])
-                    .transportPort(transportPorts[i])
-                    .settings(settings)
-                    .addUnicastHosts(unicastHosts)
-                    .build();
+            servers[i] = new CrateTestServer(
+                    clusterName,
+                    httpPorts[i],
+                    transportPorts[i],
+                    crateWorkingDir(),
+                    hostAddress,
+                    settings,
+                    unicastHosts
+            );
         }
         return servers;
     }

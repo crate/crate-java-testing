@@ -89,6 +89,7 @@ public class ClusterTest extends BaseTest {
         Path workingPath = testCluster.crateWorkingDir();
         assertThat(Files.exists(workingPath), is(true));
 
+
         testCluster.after();
         assertThat(Files.exists(workingPath), is(true));
     }
