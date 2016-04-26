@@ -5,6 +5,8 @@ Changes for Crate-Java-Testing
 Unreleased
 ==========
 
+ * Made the CrateTestCluster before & after methods public
+
 2016/03/14 0.4.1
 ================
 
