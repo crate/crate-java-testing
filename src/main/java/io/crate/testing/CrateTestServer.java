@@ -22,18 +22,16 @@
 package io.crate.testing;
 
 import org.junit.rules.ExternalResource;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.net.InetAddress;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -53,58 +51,6 @@ public class CrateTestServer extends ExternalResource {
     private ExecutorService executor;
     private Process crateProcess;
 
-    static class Builder {
-        private String host = InetAddress.getLoopbackAddress().getHostAddress();
-        private int httpPort = Utils.randomAvailablePort();
-        private int transportPort = Utils.randomAvailablePort();
-        private Path workingDir = CrateTestCluster.TMP_WORKING_DIR;
-        private String clusterName = "Testing-" + transportPort;
-        private List<String> unicastHosts = new ArrayList<>();
-        private Map<String, Object> nodeSettings = Collections.emptyMap();
-
-        Builder() {
-        }
-
-        public Builder host(String host) {
-            this.host = host;
-            return this;
-        }
-
-        public Builder httpPort(int httpPort) {
-            this.httpPort = httpPort;
-            return this;
-        }
-
-        public Builder transportPort(int transportPort) {
-            this.transportPort = transportPort;
-            return this;
-        }
-
-        public Builder workingDir(Path workingDir) {
-            this.workingDir = workingDir;
-            return this;
-        }
-
-        public Builder clusterName(String clusterName) {
-            this.clusterName = clusterName;
-            return this;
-        }
-
-        public Builder addUnicastHosts(String... unicastHosts) {
-            Collections.addAll(this.unicastHosts, unicastHosts);
-            return this;
-        }
-
-        public Builder settings(Map<String, Object> nodeSettings) {
-            this.nodeSettings = nodeSettings;
-            return this;
-        }
-
-        public CrateTestServer build() {
-            return new CrateTestServer(clusterName, httpPort, transportPort, workingDir, host,
-                    nodeSettings, unicastHosts.toArray(new String[unicastHosts.size()]));
-        }
-    }
 
     public int httpPort() {
         return httpPort;
@@ -122,13 +68,13 @@ public class CrateTestServer extends ExternalResource {
         return clusterName;
     }
 
-    private CrateTestServer(String clusterName,
-                            int httpPort,
-                            int transportPort,
-                            Path workingDir,
-                            String host,
-                            Map<String, Object> settings,
-                            String... unicastHosts) {
+    public CrateTestServer(String clusterName,
+                           int httpPort,
+                           int transportPort,
+                           Path workingDir,
+                           String host,
+                           Map<String, Object> settings,
+                           String... unicastHosts) {
         this.clusterName = Utils.firstNonNull(clusterName, "Testing-" + transportPort);
         this.crateHost = host;
         this.httpPort = httpPort;
