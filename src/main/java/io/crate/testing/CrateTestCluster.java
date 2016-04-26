@@ -262,8 +262,11 @@ public class CrateTestCluster extends ExternalResource {
         return new JsonParser().parse(res.toString()).getAsJsonObject();
     }
 
+    /**
+     * launches the crate server and waits for them to become ready
+     */
     @Override
-    protected void before() throws Throwable {
+    public void before() throws Throwable {
         prepareCrateEnvironment();
         servers = buildServers();
         for (CrateTestServer server : servers) {
@@ -338,8 +341,11 @@ public class CrateTestCluster extends ExternalResource {
         );
     }
 
+    /**
+     * stops the crate server and removes the workingDir if keepWorkingDir is false
+     */
     @Override
-    protected void after() {
+    public void after() {
         CrateTestServer[] localServers = serversSafe();
         for (CrateTestServer server : localServers) {
             server.after();
