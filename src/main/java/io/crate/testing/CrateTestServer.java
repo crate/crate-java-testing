@@ -23,10 +23,7 @@ package io.crate.testing;
 
 import org.junit.rules.ExternalResource;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -34,9 +31,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 public class CrateTestServer extends ExternalResource {
 
@@ -48,7 +42,6 @@ public class CrateTestServer extends ExternalResource {
     private final String[] unicastHosts;
     private final Map<String, Object> nodeSettings;
 
-    private ExecutorService executor;
     private Process crateProcess;
 
 
@@ -87,7 +80,6 @@ public class CrateTestServer extends ExternalResource {
     @Override
     protected void before() throws Throwable {
         Utils.log("Starting crate server process...");
-        executor = Executors.newFixedThreadPool(2); // new threadpool for new process instance
         startCrateAsDaemon();
     }
 
@@ -101,17 +93,6 @@ public class CrateTestServer extends ExternalResource {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-        }
-
-        executor.shutdown();
-        try {
-            if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
-                executor.shutdownNow();
-            }
-        } catch (InterruptedException e) {
-            // ignore
-        } finally {
-            executor.shutdownNow();
         }
     }
 
@@ -140,13 +121,12 @@ public class CrateTestServer extends ExternalResource {
         for (Map.Entry<String, Object> entry : settingsMap.entrySet()) {
             command[idx++] = String.format(Locale.ENGLISH, "-Des.%s=%s", entry.getKey(), entry.getValue());
         }
-        ProcessBuilder processBuilder = new ProcessBuilder(
-                command
-        );
+        ProcessBuilder processBuilder = new ProcessBuilder(command);
         assert Files.exists(workingDir);
         processBuilder.directory(workingDir.toFile());
-        processBuilder.redirectErrorStream(true);
+        processBuilder.inheritIO();
         crateProcess = processBuilder.start();
+
 
         // shut down crate process when JVM is cancelled
         Runtime.getRuntime().addShutdownHook(new Thread() {
@@ -159,33 +139,6 @@ public class CrateTestServer extends ExternalResource {
                     }
                 } catch (Throwable t) {
                     // ignore
-                }
-            }
-        });
-        // print server stdout to stdout
-        executor.submit(new Runnable() {
-            @Override
-            public void run() {
-                InputStream is = crateProcess.getInputStream();
-                BufferedReader reader = new BufferedReader(new InputStreamReader(is));
-                try {
-                    while (true) {
-
-                        if (reader.ready()) {
-                            System.out.println(reader.readLine());
-                        } else {
-                            Thread.sleep(100);
-                        }
-                        try {
-                            crateProcess.exitValue();
-                            break;
-                        } catch (IllegalThreadStateException e) {
-                            // fine
-                        }
-
-                    }
-                } catch (IOException | InterruptedException e) {
-                    e.printStackTrace();
                 }
             }
         });
