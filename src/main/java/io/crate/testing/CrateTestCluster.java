@@ -263,8 +263,12 @@ public class CrateTestCluster extends ExternalResource {
     }
 
     @Override
-    protected void before() throws Throwable {
-        prepareCrateEnvironment();
+    public void before() throws Throwable {
+        prepareEnvironment();
+        startCluster();
+    }
+
+    public void startCluster() throws Throwable {
         servers = buildServers();
         for (CrateTestServer server : servers) {
             try {
@@ -282,7 +286,7 @@ public class CrateTestCluster extends ExternalResource {
         }
     }
 
-    private void prepareCrateEnvironment() throws IOException {
+    public void prepareEnvironment() throws IOException {
         createDirs();
         Path downloadedCrateTarGz = downloadCrateTarGz();
         Path crateWorkingDir = crateWorkingDir();
@@ -339,7 +343,7 @@ public class CrateTestCluster extends ExternalResource {
     }
 
     @Override
-    protected void after() {
+    public void after() {
         CrateTestServer[] localServers = serversSafe();
         for (CrateTestServer server : localServers) {
             server.after();

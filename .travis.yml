@@ -6,7 +6,7 @@ jdk:
 
 sudo: false
 
-script: ./gradlew -PmaxParallelForks=2 test -s --info
+script: ./gradlew test 
 
 notifications:
   email: false
