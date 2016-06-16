@@ -5,6 +5,9 @@ Changes for Crate-Java-Testing
 Unreleased
 ==========
 
+2016/06/16 0.4.2
+================
+
  * make methods `start` cluster, `prepareEnvironment`, `before`
    and `after` of CrateTestCluster public.
 
