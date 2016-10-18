@@ -177,9 +177,11 @@ public class CrateTestCluster extends ExternalResource {
     private CrateTestServer[] buildServers() {
         int transportPorts[] = new int[numberOfNodes];
         int httpPorts[] = new int[numberOfNodes];
+        int psqlPorts[] = new int[numberOfNodes];
         for (int i = 0; i < numberOfNodes; i++) {
-            transportPorts[i] = Utils.randomAvailablePort();
-            httpPorts[i] = Utils.randomAvailablePort();
+            transportPorts[i] = Utils.randomAvailablePort(4200, 4400);
+            httpPorts[i] = Utils.randomAvailablePort(4500, 4600);
+            psqlPorts[i] = Utils.randomAvailablePort(5432, 5532);
         }
         CrateTestServer[] servers = new CrateTestServer[numberOfNodes];
 
@@ -189,6 +191,7 @@ public class CrateTestCluster extends ExternalResource {
                     clusterName,
                     httpPorts[i],
                     transportPorts[i],
+                    psqlPorts[i],
                     crateWorkingDir(),
                     hostAddress,
                     settings,

@@ -41,6 +41,7 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Locale;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class Utils {
 
@@ -56,6 +57,20 @@ public class Utils {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    static int randomAvailablePort(int from, int to) {
+        int repeat = 5;
+        while (repeat > 0)
+            try {
+                int port = ThreadLocalRandom.current().nextInt(from, to + 1);
+                ServerSocket socket = new ServerSocket(port);
+                socket.close();
+                return port;
+            } catch (IOException ignored) {
+                repeat--;
+            }
+        throw new RuntimeException("no free port found");
     }
 
     static void log(String message, Object... params) {

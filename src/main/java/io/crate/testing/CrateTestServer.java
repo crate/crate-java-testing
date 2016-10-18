@@ -36,6 +36,7 @@ public class CrateTestServer extends ExternalResource {
 
     private final int httpPort;
     private final int transportPort;
+    private final int psqlPort;
     private final Path workingDir;
     private final String crateHost;
     private final String clusterName;
@@ -47,6 +48,10 @@ public class CrateTestServer extends ExternalResource {
 
     public int httpPort() {
         return httpPort;
+    }
+
+    public int psqlPort() {
+        return psqlPort;
     }
 
     public int transportPort() {
@@ -64,6 +69,7 @@ public class CrateTestServer extends ExternalResource {
     public CrateTestServer(String clusterName,
                            int httpPort,
                            int transportPort,
+                           int psqlPort,
                            Path workingDir,
                            String host,
                            Map<String, Object> settings,
@@ -71,6 +77,7 @@ public class CrateTestServer extends ExternalResource {
         this.clusterName = Utils.firstNonNull(clusterName, "Testing-" + transportPort);
         this.crateHost = host;
         this.httpPort = httpPort;
+        this.psqlPort = psqlPort;
         this.transportPort = transportPort;
         this.unicastHosts = unicastHosts;
         this.workingDir = workingDir;
@@ -102,6 +109,8 @@ public class CrateTestServer extends ExternalResource {
             put("network.host", crateHost);
             put("cluster.name", clusterName);
             put("http.port", httpPort);
+            put("psql.port", psqlPort);
+            put("psql.enabled", true);
             put("transport.tcp.port", transportPort);
             put("discovery.zen.ping.multicast.enabled", "false");
             put("discovery.zen.ping.unicast.hosts", Utils.join(unicastHosts, ","));
