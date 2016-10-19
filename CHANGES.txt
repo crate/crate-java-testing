@@ -5,6 +5,9 @@ Changes for Crate-Java-Testing
 Unreleased
 ==========
 
+2016/10/19 0.4.3
+================
+
  * exposed PostgreSQL port in the Crate test server.
 
 2016/06/16 0.4.2
