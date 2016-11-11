@@ -19,8 +19,6 @@ dependencies {
     compile "org.apache.commons:commons-compress:1.2"
     compile "com.google.code.gson:gson:1.7.2"
 
-    testCompile "com.tdunning:t-digest:$tDigestVersion"
-    testCompile "io.crate:crate-client:$crateClientVersion"
     testCompile ("com.carrotsearch.randomizedtesting:randomizedtesting-runner:$randomizedTestingVersion") {
         exclude group: 'junit', module: 'junit'
     }

@@ -1,88 +1,83 @@
 /*
- * Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
- * license agreements.  See the NOTICE file distributed with this work for
- * additional information regarding copyright ownership.  Crate licenses
- * this file to you under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.  You may
+ * Licensed to Crate under one or more contributor license agreements.
+ * See the NOTICE file distributed with this work for additional
+ * information regarding copyright ownership.  Crate licenses this file
+ * to you under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied.  See the License for the specific language governing
+ * permissions and limitations under the License.
  *
  * However, if you have executed another commercial license agreement
  * with Crate these terms will supersede the license and you may use the
- * software solely pursuant to the terms of the relevant commercial agreement.
+ * software solely pursuant to the terms of the relevant commercial
+ * agreement.
  */
 
 package io.crate.integrationtests;
 
 import com.carrotsearch.randomizedtesting.RandomizedTest;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
-import io.crate.action.sql.SQLRequest;
-import io.crate.action.sql.SQLResponse;
-import io.crate.client.CrateClient;
-import io.crate.shade.org.elasticsearch.client.transport.TransportClient;
-import io.crate.shade.org.elasticsearch.common.io.FileSystemUtils;
-import io.crate.shade.org.elasticsearch.common.settings.ImmutableSettings;
-import io.crate.shade.org.elasticsearch.common.transport.InetSocketTransportAddress;
-import io.crate.shade.org.elasticsearch.common.unit.TimeValue;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import io.crate.testing.CrateTestCluster;
 import io.crate.testing.CrateTestServer;
+import io.crate.testing.Utils;
 
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+
+@ThreadLeakScope(ThreadLeakScope.Scope.SUITE)
 public abstract class BaseTest extends RandomizedTest {
 
     static {
-        FileSystemUtils.deleteRecursively(CrateTestCluster.TMP_WORKING_DIR.toFile(), false);
-        FileSystemUtils.deleteRecursively(CrateTestCluster.TMP_CACHE_DIR.toFile(), false);
+        try {
+            Utils.deletePath(CrateTestCluster.TMP_WORKING_DIR);
+        } catch (IOException ignored) {
+        }
     }
 
-    private static final TimeValue DEFAULT_TIMEOUT = TimeValue.timeValueSeconds(10);
+    private static final int DEFAULT_TIMEOUT_MS = 10_000;
+    private static URL url;
 
-    protected static CrateClient crateClient;
-
-    protected static CrateClient crateClient(CrateTestCluster crateCluster) {
-        CrateTestServer crateTestServer = crateCluster.randomServer();
-        return new CrateClient(String.format("%s:%d", crateTestServer.crateHost(), crateTestServer.transportPort()));
+    protected static void prepare(CrateTestCluster crateCluster) throws MalformedURLException {
+        CrateTestServer server = crateCluster.randomServer();
+        url = new URL(String.format("http://%s:%d/_sql", server.crateHost(), server.httpPort()));
     }
 
-    protected SQLResponse execute(String statement) {
-        return execute(statement, SQLRequest.EMPTY_ARGS, DEFAULT_TIMEOUT);
+    protected JsonObject execute(String statement) throws IOException {
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        connection.setRequestMethod("POST");
+
+        String query = "{\"stmt\": \"" + statement + "\"}";
+        byte[] body = query.getBytes("UTF-8");
+        connection.setRequestProperty("Content-Type", "application/text");
+        connection.setRequestProperty("Content-Length", String.valueOf(body.length));
+        connection.setDoOutput(true);
+        connection.getOutputStream().write(body);
+        connection.setConnectTimeout(DEFAULT_TIMEOUT_MS);
+        return parseResponse(connection.getInputStream());
     }
 
-    protected SQLResponse execute(String statement, TimeValue timeout) {
-        return execute(statement, SQLRequest.EMPTY_ARGS, timeout);
+    private static JsonObject parseResponse(InputStream inputStream) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(inputStream));
+        StringBuilder res = new StringBuilder();
+        String line;
+        while ((line = br.readLine()) != null) {
+            res.append(line);
+        }
+        br.close();
+        return new JsonParser().parse(res.toString()).getAsJsonObject();
     }
-
-    protected SQLResponse execute(String statement, Object[] args) {
-        return execute(statement, args, DEFAULT_TIMEOUT);
-    }
-
-    protected SQLResponse execute(String statement, Object[] args, TimeValue timeout) {
-        return crateClient.sql(new SQLRequest(statement, args)).actionGet(timeout);
-    }
-
-    private TransportClient ensureTransportClient(CrateTestServer server) {
-        TransportClient transportClient = new TransportClient(ImmutableSettings.builder()
-                .put("cluster.name", server.clusterName())
-                .build());
-        transportClient.addTransportAddress(
-                new InetSocketTransportAddress(server.crateHost(), server.transportPort())
-        );
-        return transportClient;
-    }
-
-    protected void ensureYellow(CrateTestServer server) {
-        ensureTransportClient(server).admin().cluster().prepareHealth().setWaitForYellowStatus().execute().actionGet();
-    }
-
-    protected void ensureGreen(CrateTestServer server) {
-        ensureTransportClient(server).admin().cluster().prepareHealth().setWaitForGreenStatus().execute().actionGet();
-    }
-
 }

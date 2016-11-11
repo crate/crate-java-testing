@@ -48,7 +48,7 @@ public class CrateTestCluster extends ExternalResource {
 
     private static final Path CRATE_TMP_DIR = Paths.get(System.getProperty("java.io.tmpdir"), "crate.testing");
 
-    public static final Path TMP_CACHE_DIR = CRATE_TMP_DIR.resolve("downloads");
+    private static final Path TMP_CACHE_DIR = CRATE_TMP_DIR.resolve("downloads");
     public static final Path TMP_WORKING_DIR = CRATE_TMP_DIR.resolve("working");
 
     private final UUID clusterUUID = UUID.randomUUID();

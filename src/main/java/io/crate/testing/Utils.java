@@ -77,7 +77,7 @@ public class Utils {
         System.out.println(String.format(Locale.ENGLISH, message, params));
     }
 
-    static void deletePath(Path path) throws IOException {
+    public static void deletePath(Path path) throws IOException {
         Files.walkFileTree(path, new SimpleFileVisitor<Path>() {
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
