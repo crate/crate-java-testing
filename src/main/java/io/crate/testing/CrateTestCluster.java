@@ -43,6 +43,8 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeoutException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class CrateTestCluster extends ExternalResource {
 
@@ -60,6 +62,7 @@ public class CrateTestCluster extends ExternalResource {
     private final Map<String, Object> settings;
     private final String hostAddress;
     private final boolean keepWorkingDir;
+    private final String crateVersion;
 
     private volatile CrateTestServer[] servers;
 
@@ -69,7 +72,8 @@ public class CrateTestCluster extends ExternalResource {
                              DownloadSource downloadSource,
                              Map<String, Object> settings,
                              String hostAddress,
-                             boolean keepWorkingDir) {
+                             boolean keepWorkingDir,
+                             String crateVersion) {
         this.numberOfNodes = numberOfNodes;
         this.clusterName = clusterName;
         this.workingDir = workingDir;
@@ -77,23 +81,38 @@ public class CrateTestCluster extends ExternalResource {
         this.settings = settings;
         this.hostAddress = hostAddress;
         this.keepWorkingDir = keepWorkingDir;
+        this.crateVersion = crateVersion;
     }
 
     public static class Builder {
 
-        private final DownloadSource downloadSource;
+        private static final Pattern VERSION_REGEX = Pattern.compile("(\\d+)\\.(\\d+)\\.(\\d+)");
 
+        private final DownloadSource downloadSource;
         private int numberOfNodes = 1;
         private String clusterName = "TestingCluster";
         private Path workingDir = TMP_WORKING_DIR;
         private Map<String, Object> settings = Collections.emptyMap();
         private String hostAddress = InetAddress.getLoopbackAddress().getHostAddress();
         private boolean keepWorkingDir = false;
+        private String crateVersion;
 
         private Builder(DownloadSource downloadSource) {
             if (downloadSource == null) {
-                throw new IllegalArgumentException("no download source given (version, git-ref, url, file)");
+                throw new IllegalArgumentException("No download source given (version, git-ref, url, file)");
             }
+            Matcher matcher;
+            try {
+                matcher = VERSION_REGEX.matcher(downloadSource.downloadUrl().getFile().toLowerCase());
+            } catch (MalformedURLException e) {
+                throw new IllegalArgumentException("Provided download source url is malformed", e);
+            }
+            if (!matcher.find()) {
+                throw new IllegalArgumentException(
+                    "Cannot extract crate version from the url. The version format might be malformed."
+                );
+            }
+            this.crateVersion = matcher.group(0);
             this.downloadSource = downloadSource;
         }
 
@@ -144,7 +163,8 @@ public class CrateTestCluster extends ExternalResource {
         }
 
         public CrateTestCluster build() {
-            return new CrateTestCluster(numberOfNodes, clusterName, workingDir, downloadSource, settings, hostAddress, keepWorkingDir);
+            return new CrateTestCluster(numberOfNodes, clusterName, workingDir, downloadSource,
+                settings, hostAddress, keepWorkingDir, crateVersion);
         }
     }
 
@@ -188,14 +208,15 @@ public class CrateTestCluster extends ExternalResource {
         String[] unicastHosts = getUnicastHosts(hostAddress, transportPorts);
         for (int i = 0; i < numberOfNodes; i++) {
             servers[i] = new CrateTestServer(
-                    clusterName,
-                    httpPorts[i],
-                    transportPorts[i],
-                    psqlPorts[i],
-                    crateWorkingDir(),
-                    hostAddress,
-                    settings,
-                    unicastHosts
+                clusterName,
+                httpPorts[i],
+                transportPorts[i],
+                psqlPorts[i],
+                crateWorkingDir(),
+                hostAddress,
+                settings,
+                crateVersion,
+                unicastHosts
             );
         }
         return servers;

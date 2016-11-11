@@ -34,6 +34,8 @@ import java.util.Map;
 
 public class CrateTestServer extends ExternalResource {
 
+    private static final CrateVersion MIN_C_OPTION_VERSION = new CrateVersion("1.0.0");
+
     private final int httpPort;
     private final int transportPort;
     private final int psqlPort;
@@ -42,6 +44,7 @@ public class CrateTestServer extends ExternalResource {
     private final String clusterName;
     private final String[] unicastHosts;
     private final Map<String, Object> nodeSettings;
+    private final String crateVersion;
 
     private Process crateProcess;
 
@@ -73,6 +76,7 @@ public class CrateTestServer extends ExternalResource {
                            Path workingDir,
                            String host,
                            Map<String, Object> settings,
+                           String crateVersion,
                            String... unicastHosts) {
         this.clusterName = Utils.firstNonNull(clusterName, "Testing-" + transportPort);
         this.crateHost = host;
@@ -82,6 +86,7 @@ public class CrateTestServer extends ExternalResource {
         this.unicastHosts = unicastHosts;
         this.workingDir = workingDir;
         this.nodeSettings = settings == null ? Collections.<String, Object>emptyMap() : settings;
+        this.crateVersion = crateVersion;
     }
 
     @Override
@@ -121,14 +126,15 @@ public class CrateTestServer extends ExternalResource {
         String[] command = new String[settingsMap.size() + 1];
         int idx = 0;
 
-        String executable = Paths.get(workingDir.toString() , "bin" , "crate").toString();
+        String executable = Paths.get(workingDir.toString(), "bin", "crate").toString();
         if (isWindows()) {
             executable = executable.concat(".bat");
         }
         command[idx++] = executable;
 
+        String settingPrefix = MIN_C_OPTION_VERSION.gt(crateVersion) ? "-Des" : "-C";
         for (Map.Entry<String, Object> entry : settingsMap.entrySet()) {
-            command[idx++] = String.format(Locale.ENGLISH, "-Des.%s=%s", entry.getKey(), entry.getValue());
+            command[idx++] = String.format(Locale.ENGLISH, "%s.%s=%s", settingPrefix, entry.getKey(), entry.getValue());
         }
         ProcessBuilder processBuilder = new ProcessBuilder(command);
         assert Files.exists(workingDir);
@@ -154,7 +160,6 @@ public class CrateTestServer extends ExternalResource {
     }
 
     private static boolean isWindows() {
-        return System.getProperty("os.name").toLowerCase(Locale.ENGLISH).indexOf("win")>=0;
+        return System.getProperty("os.name").toLowerCase(Locale.ENGLISH).contains("win");
     }
-
 }
