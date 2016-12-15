@@ -5,6 +5,9 @@ Changes for Crate-Java-Testing
 Unreleased
 ==========
 
+2016/12/15 0.4.4
+================
+
  * crate versions which does not support -Des any longer
    can be used in the crate java testing layer.
 
