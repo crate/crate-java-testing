@@ -5,6 +5,8 @@ Changes for Crate-Java-Testing
 Unreleased
 ==========
 
+ * added support for setting command line arguments.
+
  * fix a bug caused all settings provided for CrateDB >= 1.0.X to be
    ignored.
 

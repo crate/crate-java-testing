@@ -63,6 +63,7 @@ public class CrateTestCluster extends ExternalResource {
     private final String hostAddress;
     private final boolean keepWorkingDir;
     private final String crateVersion;
+    private final Map<String, Object> commandLineArguments;
 
     private volatile CrateTestServer[] servers;
 
@@ -73,7 +74,8 @@ public class CrateTestCluster extends ExternalResource {
                              Map<String, Object> settings,
                              String hostAddress,
                              boolean keepWorkingDir,
-                             String crateVersion) {
+                             String crateVersion,
+                             Map<String, Object> commandLineArguments) {
         this.numberOfNodes = numberOfNodes;
         this.clusterName = clusterName;
         this.workingDir = workingDir;
@@ -82,6 +84,7 @@ public class CrateTestCluster extends ExternalResource {
         this.hostAddress = hostAddress;
         this.keepWorkingDir = keepWorkingDir;
         this.crateVersion = crateVersion;
+        this.commandLineArguments = commandLineArguments;
     }
 
     public static class Builder {
@@ -96,6 +99,7 @@ public class CrateTestCluster extends ExternalResource {
         private String hostAddress = InetAddress.getLoopbackAddress().getHostAddress();
         private boolean keepWorkingDir = false;
         private String crateVersion;
+        private Map<String, Object> commandLineArguments;
 
         private Builder(DownloadSource downloadSource) {
             if (downloadSource == null) {
@@ -162,9 +166,14 @@ public class CrateTestCluster extends ExternalResource {
             return this;
         }
 
+        public Builder commandLineArguments(Map<String, Object> commandLineArguments) {
+            this.commandLineArguments = commandLineArguments;
+            return this;
+        }
+
         public CrateTestCluster build() {
             return new CrateTestCluster(numberOfNodes, clusterName, workingDir, downloadSource,
-                settings, hostAddress, keepWorkingDir, crateVersion);
+                settings, hostAddress, keepWorkingDir, crateVersion, commandLineArguments);
         }
     }
 
@@ -215,6 +224,7 @@ public class CrateTestCluster extends ExternalResource {
                 crateWorkingDir(),
                 hostAddress,
                 settings,
+                commandLineArguments,
                 crateVersion,
                 unicastHosts
             );

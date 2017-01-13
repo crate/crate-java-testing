@@ -44,6 +44,7 @@ public class CrateTestServer extends ExternalResource {
     private final String clusterName;
     private final String[] unicastHosts;
     private final Map<String, Object> nodeSettings;
+    private final Map<String, Object> commandLineArguments;
     private final String crateVersion;
 
     private Process crateProcess;
@@ -76,6 +77,7 @@ public class CrateTestServer extends ExternalResource {
                            Path workingDir,
                            String host,
                            Map<String, Object> settings,
+                           Map<String, Object> commandLineArguments,
                            String crateVersion,
                            String... unicastHosts) {
         this.clusterName = Utils.firstNonNull(clusterName, "Testing-" + transportPort);
@@ -86,6 +88,7 @@ public class CrateTestServer extends ExternalResource {
         this.unicastHosts = unicastHosts;
         this.workingDir = workingDir;
         this.nodeSettings = settings == null ? Collections.<String, Object>emptyMap() : settings;
+        this.commandLineArguments = commandLineArguments == null ? Collections.<String, Object>emptyMap() : commandLineArguments;
         this.crateVersion = crateVersion;
     }
 
@@ -123,7 +126,7 @@ public class CrateTestServer extends ExternalResource {
 
         settingsMap.putAll(nodeSettings);
 
-        String[] command = new String[settingsMap.size() + 1];
+        String[] command = new String[settingsMap.size() + commandLineArguments.size() + 1];
         int idx = 0;
 
         String executable = Paths.get(workingDir.toString(), "bin", "crate").toString();
@@ -132,10 +135,17 @@ public class CrateTestServer extends ExternalResource {
         }
         command[idx++] = executable;
 
+        // crate settings
         String settingPrefix = MIN_C_OPTION_VERSION.gt(crateVersion) ? "-Des." : "-C";
         for (Map.Entry<String, Object> entry : settingsMap.entrySet()) {
             command[idx++] = String.format(Locale.ENGLISH, "%s%s=%s", settingPrefix, entry.getKey(), entry.getValue());
         }
+
+        // rest of command line arguments
+        for (Map.Entry<String, Object> entry : commandLineArguments.entrySet()) {
+            command[idx++] = String.format(Locale.ENGLISH, "%s=%s", entry.getKey(), entry.getValue());
+        }
+
         ProcessBuilder processBuilder = new ProcessBuilder(command);
         assert Files.exists(workingDir);
         processBuilder.directory(workingDir.toFile());

@@ -119,6 +119,27 @@ public class ClusterTest extends BaseTest {
     }
 
     @Test
+    public void testCommandLineArguments() throws Throwable {
+        CrateTestCluster cluster = CrateTestCluster
+            .fromVersion("1.0.2")
+            .numberOfNodes(1)
+            .commandLineArguments(new HashMap<String, Object>() {{
+                put("-Cnode.name", "test-node");
+            }})
+            .build();
+
+        try {
+            cluster.before();
+            cluster.startCluster();
+            prepare(cluster);
+            JsonObject response = execute("select name from sys.nodes");
+            assertThat(response.getAsJsonArray("rows").get(0).getAsString(), is("test-node"));
+        } finally {
+            cluster.after();
+        }
+    }
+
+    @Test
     public void testNoNodes() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("invalid number of nodes: 0");
