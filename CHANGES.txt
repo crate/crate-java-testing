@@ -5,6 +5,9 @@ Changes for Crate-Java-Testing
 Unreleased
 ==========
 
+ * fix a bug caused all settings provided for CrateDB >= 1.0.X to be
+   ignored.
+
 2016/12/15 0.4.4
 ================
 

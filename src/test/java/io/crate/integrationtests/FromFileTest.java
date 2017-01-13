@@ -36,7 +36,7 @@ import static org.hamcrest.CoreMatchers.is;
 public class FromFileTest extends BaseTest {
 
     private static final String CLUSTER_NAME = "from-file";
-    private static final String VERSION = "0.57.1";
+    private static final String VERSION = "1.0.2";
 
     private static final String FILE = FromFileTest.class
         .getResource(String.format("crate-%s.tar.gz", VERSION))

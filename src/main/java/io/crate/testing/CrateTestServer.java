@@ -132,9 +132,9 @@ public class CrateTestServer extends ExternalResource {
         }
         command[idx++] = executable;
 
-        String settingPrefix = MIN_C_OPTION_VERSION.gt(crateVersion) ? "-Des" : "-C";
+        String settingPrefix = MIN_C_OPTION_VERSION.gt(crateVersion) ? "-Des." : "-C";
         for (Map.Entry<String, Object> entry : settingsMap.entrySet()) {
-            command[idx++] = String.format(Locale.ENGLISH, "%s.%s=%s", settingPrefix, entry.getKey(), entry.getValue());
+            command[idx++] = String.format(Locale.ENGLISH, "%s%s=%s", settingPrefix, entry.getKey(), entry.getValue());
         }
         ProcessBuilder processBuilder = new ProcessBuilder(command);
         assert Files.exists(workingDir);

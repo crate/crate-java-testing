@@ -35,7 +35,7 @@ import static org.hamcrest.CoreMatchers.is;
 public class FromVersionTest extends BaseTest {
 
     private static final String CLUSTER_NAME = "from-version";
-    private static final String VERSION = "0.54.3";
+    private static final String VERSION = "1.0.2";
 
     @ClassRule
     public static CrateTestCluster fromVersionCluster = CrateTestCluster
