@@ -5,9 +5,12 @@ Changes for Crate-Java-Testing
 Unreleased
 ==========
 
+2017/01/13 0.5.0
+================
+
  * added support for setting command line arguments.
 
-2017/02/13 0.4.5
+2017/01/13 0.4.5
 ================
 
  * fix a bug caused all settings provided for CrateDB >= 1.0.X to be
