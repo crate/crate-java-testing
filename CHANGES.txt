@@ -7,6 +7,9 @@ Unreleased
 
  * added support for setting command line arguments.
 
+2017/02/13 0.4.5
+================
+
  * fix a bug caused all settings provided for CrateDB >= 1.0.X to be
    ignored.
 
