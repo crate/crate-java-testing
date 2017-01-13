@@ -125,6 +125,7 @@ public class ClusterTest extends BaseTest {
             .numberOfNodes(1)
             .commandLineArguments(new HashMap<String, Object>() {{
                 put("-Cnode.name", "test-node");
+                put("-Dcom.sun.management.jmxremote", null);
             }})
             .build();
 

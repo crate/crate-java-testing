@@ -143,7 +143,12 @@ public class CrateTestServer extends ExternalResource {
 
         // rest of command line arguments
         for (Map.Entry<String, Object> entry : commandLineArguments.entrySet()) {
-            command[idx++] = String.format(Locale.ENGLISH, "%s=%s", entry.getKey(), entry.getValue());
+            Object value = entry.getValue();
+            if (value != null) {
+                command[idx++] = String.format(Locale.ENGLISH, "%s=%s", entry.getKey(), value);
+            } else {
+                command[idx++] = entry.getKey();
+            }
         }
 
         ProcessBuilder processBuilder = new ProcessBuilder(command);
