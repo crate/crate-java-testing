@@ -2,8 +2,8 @@
 CrateDB Java Testing Classes
 ============================
 
-This project provides the ``CrateTestServer`` and ``CrateTestCluster`` classes
-for use as `JUnit external resources`_.
+``CrateTestServer`` and ``CrateTestCluster`` classes for use as `JUnit external
+resources`_.
 
 Both classes download and start CrateDB before test execution and stop CrateDB
 afterwards.
@@ -90,7 +90,7 @@ must be set. If both system properties are provided, the
 Contributing
 ============
 
-This project is primarily maintained by `Crate.io`_, but we welcome community
+This project is primarily maintained by Crate.io_, but we welcome community
 contributions!
 
 See the `developer docs`_ and the `contribution docs`_ for more information.
