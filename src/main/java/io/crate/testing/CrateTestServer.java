@@ -35,6 +35,7 @@ import java.util.Map;
 public class CrateTestServer extends ExternalResource {
 
     private static final CrateVersion MIN_C_OPTION_VERSION = new CrateVersion("1.0.0");
+    private static final CrateVersion MIN_REFACTORED_OPTION_VERSION = new CrateVersion("2.0.0");
 
     private final int httpPort;
     private final int transportPort;
@@ -113,16 +114,19 @@ public class CrateTestServer extends ExternalResource {
 
     private void startCrateAsDaemon() throws IOException, InterruptedException {
         Map<String, Object> settingsMap = new HashMap<String, Object>() {{
-            put("index.storage.type", "memory");
             put("network.host", crateHost);
             put("cluster.name", clusterName);
             put("http.port", httpPort);
             put("psql.port", psqlPort);
             put("psql.enabled", true);
             put("transport.tcp.port", transportPort);
-            put("discovery.zen.ping.multicast.enabled", "false");
             put("discovery.zen.ping.unicast.hosts", Utils.join(unicastHosts, ","));
         }};
+
+        if (MIN_REFACTORED_OPTION_VERSION.gt(crateVersion)) {
+            settingsMap.put("discovery.zen.ping.multicast.enabled", "false");
+            settingsMap.put("index.storage.type", "memory");
+        }
 
         settingsMap.putAll(nodeSettings);
 

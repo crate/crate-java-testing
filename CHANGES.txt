@@ -5,6 +5,9 @@ Changes for Crate-Java-Testing
 Unreleased
 ==========
 
+ * Added switch for default settings depending on whether the CrateDB version
+   used is before or after 2.0.0.
+
 2017/01/13 0.5.0
 ================
 
