@@ -5,6 +5,9 @@ Changes for Crate-Java-Testing
 Unreleased
 ==========
 
+ * Fixed used content-type header, CrateDB > 2.3.x won't accept request with
+   wrong content-type header anymore.
+
 2017/07/03 0.6.0
 ================
 
