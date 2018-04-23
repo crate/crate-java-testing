@@ -5,6 +5,9 @@ Changes for Crate-Java-Testing
 Unreleased
 ==========
 
+ * Changed bintray repository ``id`` from ``central` to ``bintray`` to avoid
+   mixup with maven central repository.
+
 2018/02/13 0.6.1
 ================
 

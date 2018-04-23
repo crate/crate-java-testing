@@ -25,7 +25,7 @@ repository to your ``pom.xml``:
             <snapshots>
                 <enabled>false</enabled>
             </snapshots>
-            <id>central</id>
+            <id>bintray</id>
             <name>bintray</name>
             <url>http://dl.bintray.com/crate/crate</url>
         </repository>
