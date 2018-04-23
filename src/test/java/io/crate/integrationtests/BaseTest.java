@@ -62,7 +62,7 @@ public abstract class BaseTest extends RandomizedTest {
 
         String query = "{\"stmt\": \"" + statement + "\"}";
         byte[] body = query.getBytes("UTF-8");
-        connection.setRequestProperty("Content-Type", "application/text");
+        connection.setRequestProperty("Content-Type", "application/json");
         connection.setRequestProperty("Content-Length", String.valueOf(body.length));
         connection.setDoOutput(true);
         connection.getOutputStream().write(body);

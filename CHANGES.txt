@@ -5,6 +5,9 @@ Changes for Crate-Java-Testing
 Unreleased
 ==========
 
+ * Fixed used content-type header for BaseTest, CrateDB > 2.3.x won't accept
+   requests with wrong content-type header anymore.
+
  * Changed bintray repository ``id`` from ``central` to ``bintray`` to avoid
    mixup with maven central repository.
 
