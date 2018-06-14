@@ -113,15 +113,14 @@ public class CrateTestServer extends ExternalResource {
     }
 
     private void startCrateAsDaemon() throws IOException, InterruptedException {
-        Map<String, Object> settingsMap = new HashMap<String, Object>() {{
-            put("network.host", crateHost);
-            put("cluster.name", clusterName);
-            put("http.port", httpPort);
-            put("psql.port", psqlPort);
-            put("psql.enabled", true);
-            put("transport.tcp.port", transportPort);
-            put("discovery.zen.ping.unicast.hosts", Utils.join(unicastHosts, ","));
-        }};
+        Map<String, Object> settingsMap = new HashMap<String, Object>();
+        settingsMap.put("network.host", crateHost);
+        settingsMap.put("cluster.name", clusterName);
+        settingsMap.put("http.port", httpPort);
+        settingsMap.put("psql.port", psqlPort);
+        settingsMap.put("psql.enabled", true);
+        settingsMap.put("transport.tcp.port", transportPort);
+        settingsMap.put("discovery.zen.ping.unicast.hosts", Utils.join(unicastHosts, ","));
 
         if (MIN_REFACTORED_OPTION_VERSION.gt(crateVersion)) {
             settingsMap.put("discovery.zen.ping.multicast.enabled", "false");
