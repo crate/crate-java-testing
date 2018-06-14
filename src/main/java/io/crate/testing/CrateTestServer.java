@@ -50,6 +50,12 @@ public class CrateTestServer extends ExternalResource {
 
     private Process crateProcess;
 
+    public Long pid() {
+        if (crateProcess == null) {
+            return null;
+        }
+        return crateProcess.pid();
+    }
 
     public int httpPort() {
         return httpPort;
@@ -106,6 +112,7 @@ public class CrateTestServer extends ExternalResource {
             try {
                 crateProcess.destroy();
                 crateProcess.waitFor();
+                crateProcess = null;
             } catch (Exception e) {
                 e.printStackTrace();
             }

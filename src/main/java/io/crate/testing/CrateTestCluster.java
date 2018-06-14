@@ -302,11 +302,16 @@ public class CrateTestCluster extends ExternalResource {
         startCluster();
     }
 
-    public void startCluster() throws Throwable {
+    /**
+     * @return PIDs of the started nodes
+     **/
+    public Iterable<Long> startCluster() throws Throwable {
         servers = buildServers();
+        ArrayList<Long> pids = new ArrayList<Long>();
         for (CrateTestServer server : servers) {
             try {
                 server.before();
+                pids.add(server.pid());
             } catch (IllegalStateException e) {
                 after(); // ensure that all testservers are shutdown (and free their port)
                 throw new IllegalStateException("Crate Test Cluster not started completely", e);
@@ -318,6 +323,7 @@ public class CrateTestCluster extends ExternalResource {
             after();
             throw new IllegalStateException("Crate Test Cluster not started completely", e);
         }
+        return pids;
     }
 
     public void prepareEnvironment() throws IOException {
