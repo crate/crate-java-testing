@@ -16,8 +16,8 @@ repositories {
 
 dependencies {
     compile "junit:junit:$junitVersion"
-    compile "org.apache.commons:commons-compress:1.2"
-    compile "com.google.code.gson:gson:1.7.2"
+    compile "org.apache.commons:commons-compress:$commons_compressVersion"
+    compile "com.google.code.gson:gson:$gsonVersion"
 
     testCompile ("com.carrotsearch.randomizedtesting:randomizedtesting-runner:$randomizedTestingVersion") {
         exclude group: 'junit', module: 'junit'
