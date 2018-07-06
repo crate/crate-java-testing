@@ -32,16 +32,16 @@ import org.junit.Test;
 import java.io.IOException;
 import java.net.MalformedURLException;
 
+import static io.crate.testing.Constants.CRATE_VERSION_FOR_TESTS;
 import static org.hamcrest.CoreMatchers.is;
 
 public class FromVersionPropertyClusterTest extends BaseTest {
 
     private static final String VERSION_PROPERTY = "crate.testing.from_version";
     private static final String CLUSTER_NAME = "from-version-property";
-    private static final String VERSION = "0.52.3";
 
     static {
-        System.setProperty(VERSION_PROPERTY, VERSION);
+        System.setProperty(VERSION_PROPERTY, CRATE_VERSION_FOR_TESTS);
     }
 
     @ClassRule
@@ -62,7 +62,7 @@ public class FromVersionPropertyClusterTest extends BaseTest {
         assertThat(obj.getAsJsonArray("rows").get(0).getAsString(), is(CLUSTER_NAME));
 
         obj = execute("select version['number'] from sys.nodes");
-        assertThat(obj.getAsJsonArray("rows").get(0).getAsString(), is(VERSION));
+        assertThat(obj.getAsJsonArray("rows").get(0).getAsString(), is(CRATE_VERSION_FOR_TESTS));
     }
 
     @AfterClass

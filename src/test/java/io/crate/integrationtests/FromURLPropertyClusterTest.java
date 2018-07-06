@@ -32,16 +32,17 @@ import org.junit.Test;
 import java.io.IOException;
 import java.net.MalformedURLException;
 
+import static io.crate.testing.Constants.CRATE_VERSION_FOR_TESTS;
 import static org.hamcrest.CoreMatchers.is;
 
 public class FromURLPropertyClusterTest extends BaseTest {
 
     private static final String URL_PROPERTY = "crate.testing.from_url";
     private static final String CLUSTER_NAME = "from-url-property";
-    private static final String VERSION = "0.52.4";
 
     static {
-        System.setProperty(URL_PROPERTY, String.format("https://cdn.crate.io/downloads/releases/crate-%s.tar.gz", VERSION));
+        System.setProperty(URL_PROPERTY,
+                           String.format("https://cdn.crate.io/downloads/releases/crate-%s.tar.gz", CRATE_VERSION_FOR_TESTS));
     }
 
     @ClassRule
@@ -62,7 +63,7 @@ public class FromURLPropertyClusterTest extends BaseTest {
         assertThat(obj.getAsJsonArray("rows").get(0).getAsString(), is(CLUSTER_NAME));
 
         obj = execute("select version['number'] from sys.nodes");
-        assertThat(obj.getAsJsonArray("rows").get(0).getAsString(), is(VERSION));
+        assertThat(obj.getAsJsonArray("rows").get(0).getAsString(), is(CRATE_VERSION_FOR_TESTS));
     }
 
     @AfterClass

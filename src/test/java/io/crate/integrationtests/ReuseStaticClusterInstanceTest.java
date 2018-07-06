@@ -22,7 +22,6 @@
 
 package io.crate.integrationtests;
 
-import com.google.gson.JsonObject;
 import io.crate.testing.CrateTestCluster;
 import org.junit.Before;
 import org.junit.Rule;
@@ -32,46 +31,50 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static io.crate.testing.Constants.CRATE_VERSION_FOR_TESTS;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 
+/**
+ * testing multiple starts and stops of a crate test cluster
+ * when used as a method rule.
+ * <p/>
+ * This is the same behaviour as using the testserver as static instance in an abstract superclass
+ * for many tests.
+ */
 public class ReuseStaticClusterInstanceTest extends BaseTest {
 
-    private static final String CLUSTER_NAME = "static_cluster";
+    private static final String CLUSTER_NAME = "rule";
+    private static AtomicReference<String> clusterId = new AtomicReference<>();
 
-    private static CrateTestCluster STATIC_CLUSTER = CrateTestCluster
-        .fromVersion("0.53.1")
+    private static CrateTestCluster staticCluster = CrateTestCluster
+        .fromVersion(CRATE_VERSION_FOR_TESTS)
         .clusterName(CLUSTER_NAME)
         .build();
 
-    private static AtomicReference<String> clusterId = new AtomicReference<>();
-
     @Rule
-    public CrateTestCluster testCluster = STATIC_CLUSTER;
+    public final CrateTestCluster testServer = staticCluster;
 
     @Before
     public void setUp() throws MalformedURLException {
-        prepare(testCluster);
+        prepare(staticCluster);
     }
 
     @Test
-    public void testMethod1() throws Exception {
+    public void testFirstMethod() throws Exception {
         executeTest();
     }
 
     @Test
-    public void testMethod2() throws Exception {
-        executeTest();
-    }
-
-    @Test
-    public void testMethod3() throws Exception {
+    public void testSecondMethod() throws Exception {
         executeTest();
     }
 
     private void executeTest() throws IOException {
-        JsonObject obj = execute("select id from sys.cluster");
-        String localClusterId = obj.getAsJsonArray("rows").get(0).getAsString();
+        String localClusterId = null;
+        do {
+            localClusterId = execute("select id from sys.cluster").getAsJsonArray("rows").get(0).getAsString();
+        } while (localClusterId.equals("_na_")); // make sure cluster is fully started
 
         String otherClusterId = clusterId.getAndSet(localClusterId);
         if (otherClusterId != null) {

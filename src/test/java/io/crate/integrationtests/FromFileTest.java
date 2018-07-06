@@ -30,16 +30,16 @@ import org.junit.Test;
 
 import java.net.MalformedURLException;
 
+import static io.crate.testing.Constants.CRATE_VERSION_FOR_TESTS;
 import static org.hamcrest.CoreMatchers.is;
 
 
 public class FromFileTest extends BaseTest {
 
     private static final String CLUSTER_NAME = "from-file";
-    private static final String VERSION = "1.0.2";
 
     private static final String FILE = FromFileTest.class
-        .getResource(String.format("crate-%s.tar.gz", VERSION))
+        .getResource(String.format("crate-%s.tar.gz", CRATE_VERSION_FOR_TESTS))
         .getPath();
 
     @ClassRule
@@ -59,6 +59,6 @@ public class FromFileTest extends BaseTest {
         assertThat(obj.getAsJsonArray("rows").get(0).getAsString(), is(CLUSTER_NAME));
 
         obj = execute("select version['number'] from sys.nodes");
-        assertThat(obj.getAsJsonArray("rows").get(0).getAsString(), is(VERSION));
+        assertThat(obj.getAsJsonArray("rows").get(0).getAsString(), is(CRATE_VERSION_FOR_TESTS));
     }
 }

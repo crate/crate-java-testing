@@ -30,16 +30,16 @@ import org.junit.Test;
 
 import java.net.MalformedURLException;
 
+import static io.crate.testing.Constants.CRATE_VERSION_FOR_TESTS;
 import static org.hamcrest.CoreMatchers.is;
 
 public class FromUrlTest extends BaseTest {
 
     private static final String CLUSTER_NAME = "from-uri";
-    private static final String VERSION = "0.54.4";
 
     @ClassRule
     public static CrateTestCluster fromUrlCluster = CrateTestCluster
-        .fromURL(String.format("https://cdn.crate.io/downloads/releases/crate-%s.tar.gz", VERSION))
+        .fromURL(String.format("https://cdn.crate.io/downloads/releases/crate-%s.tar.gz", CRATE_VERSION_FOR_TESTS))
         .clusterName(CLUSTER_NAME)
         .build();
 
@@ -54,6 +54,6 @@ public class FromUrlTest extends BaseTest {
         assertThat(obj.getAsJsonArray("rows").get(0).getAsString(), is(CLUSTER_NAME));
 
         obj = execute("select version['number'] from sys.nodes");
-        assertThat(obj.getAsJsonArray("rows").get(0).getAsString(), is(VERSION));
+        assertThat(obj.getAsJsonArray("rows").get(0).getAsString(), is(CRATE_VERSION_FOR_TESTS));
     }
 }

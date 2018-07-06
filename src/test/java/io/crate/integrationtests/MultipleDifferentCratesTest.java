@@ -33,8 +33,8 @@ public class MultipleDifferentCratesTest extends BaseTest {
 
     private static final String CLUSTER_NAME_FIRST = "multiples-1";
     private static final String CLUSTER_NAME_SECOND = "multiples-2";
-    private static final String FIRST_VERSION = "0.54.2";
-    private static final String SECOND_VERSION = "0.54.1";
+    private static final String FIRST_VERSION = "3.0.1";
+    private static final String SECOND_VERSION = "3.0.3";
 
     @ClassRule
     public static CrateTestCluster FIRST_CLUSTER = CrateTestCluster

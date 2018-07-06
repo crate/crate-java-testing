@@ -34,12 +34,13 @@ import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.HashMap;
 
+import static io.crate.testing.Constants.CRATE_VERSION_FOR_TESTS;
 import static org.hamcrest.core.Is.is;
 
 public class ClusterTest extends BaseTest {
 
     private static final String CLUSTER_NAME = "cluster";
-    private static final String VERSION = "0.57.1";
+    private static final String VERSION = CRATE_VERSION_FOR_TESTS;
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
@@ -49,14 +50,10 @@ public class ClusterTest extends BaseTest {
         CrateTestCluster cluster = CrateTestCluster.fromVersion(VERSION)
             .clusterName(CLUSTER_NAME)
             .numberOfNodes(2)
-            .settings(new HashMap<String, Object>() {{
-                put("stats.enabled", true);
-            }})
             .build();
 
         try {
             cluster.before();
-            cluster.startCluster();
             prepare(cluster);
             Collection<CrateTestServer> servers = cluster.servers();
             assertThat(servers.size(), is(2));
@@ -72,29 +69,34 @@ public class ClusterTest extends BaseTest {
     @Test
     public void testBuilderKeepWorkingDir() throws Throwable {
         CrateTestCluster testCluster = CrateTestCluster
-                .fromVersion("0.52.0")
+                .fromVersion(VERSION)
                 .keepWorkingDir(true)
                 .build();
 
-        testCluster.before();
-        Path workingPath = testCluster.crateWorkingDir();
-        assertThat(Files.exists(workingPath), is(true));
+            testCluster.prepareEnvironment();
+            Path workingPath = testCluster.crateWorkingDir();
+            assertThat(Files.exists(workingPath), is(true));
 
-
-        testCluster.after();
-        assertThat(Files.exists(workingPath), is(true));
+        try {
+            testCluster.startCluster();
+        } finally {
+            testCluster.after();
+            assertThat(Files.exists(workingPath), is(true));
+        }
     }
 
     @Test
     public void testBuilderDoNotKeepWorkingDir() throws Throwable {
         CrateTestCluster testCluster = CrateTestCluster
-                .fromVersion("0.52.0")
+                .fromVersion(VERSION)
                 .build();
 
-        testCluster.before();
-        assertThat(Files.exists(testCluster.crateWorkingDir()), is(true));
-
-        testCluster.after();
+        try {
+            testCluster.before();
+            assertThat(Files.exists(testCluster.crateWorkingDir()), is(true));
+        } finally {
+            testCluster.after();
+        }
     }
 
     @Test
@@ -102,16 +104,17 @@ public class ClusterTest extends BaseTest {
         Path actualCratePath = Paths.get(System.getProperty("user.dir"), "crate.testing");
         assertThat(Files.exists(actualCratePath), is(false));
 
-        CrateTestCluster testCluster = CrateTestCluster.fromVersion(VERSION)
-                .clusterName(CLUSTER_NAME)
-                .workingDir(actualCratePath)
-                .build();
+        CrateTestCluster cluster = CrateTestCluster.fromVersion(VERSION)
+                                                       .clusterName(CLUSTER_NAME)
+                                                       .workingDir(actualCratePath)
+                                                       .build();
 
-        testCluster.before();
-        Path workingPath = testCluster.crateWorkingDir();
+        cluster.prepareEnvironment();
+        Path workingPath = cluster.crateWorkingDir();
         assertThat(workingPath.startsWith(actualCratePath), is(true));
 
-        testCluster.after();
+        cluster.startCluster();
+        cluster.after();
         assertThat(Files.exists(workingPath), is(false));
 
         // clean up
@@ -121,7 +124,7 @@ public class ClusterTest extends BaseTest {
     @Test
     public void testCommandLineArguments() throws Throwable {
         CrateTestCluster cluster = CrateTestCluster
-            .fromVersion("1.0.2")
+            .fromVersion(VERSION)
             .numberOfNodes(1)
             .commandLineArguments(new HashMap<String, Object>() {{
                 put("-Cnode.name", "test-node");
@@ -129,8 +132,8 @@ public class ClusterTest extends BaseTest {
             }})
             .build();
 
+        cluster.prepareEnvironment();
         try {
-            cluster.before();
             cluster.startCluster();
             prepare(cluster);
             JsonObject response = execute("select name from sys.nodes");
@@ -141,15 +144,12 @@ public class ClusterTest extends BaseTest {
     }
 
     @Test
-    public void testNoNodes() throws Exception {
+    public void testNoNodes() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("invalid number of nodes: 0");
         CrateTestCluster.fromVersion(VERSION)
-                .clusterName(CLUSTER_NAME)
-                .numberOfNodes(0)
-                .settings(new HashMap<String, Object>() {{
-                    put("stats.enabled", true);
-                }})
-                .build();
+                        .clusterName(CLUSTER_NAME)
+                        .numberOfNodes(0)
+                        .build();
     }
 }

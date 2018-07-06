@@ -33,6 +33,7 @@ import org.junit.rules.ExpectedException;
 import java.io.IOException;
 import java.net.MalformedURLException;
 
+import static io.crate.testing.Constants.CRATE_VERSION_FOR_TESTS;
 import static org.hamcrest.CoreMatchers.is;
 
 public class SimpleIntegrationTest extends BaseTest {
@@ -41,7 +42,7 @@ public class SimpleIntegrationTest extends BaseTest {
 
     @ClassRule
     public static final CrateTestCluster testCluster = CrateTestCluster
-        .fromVersion("0.53.0")
+        .fromVersion(CRATE_VERSION_FOR_TESTS)
         .clusterName(CLUSTER_NAME)
         .build();
 

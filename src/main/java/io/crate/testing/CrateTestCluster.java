@@ -139,7 +139,11 @@ public class CrateTestCluster extends ExternalResource {
         }
 
         public Builder settings(Map<String, Object> settings) {
-            this.settings = settings;
+            if (this.settings.isEmpty()) {
+                this.settings = settings;
+            } else {
+                this.settings.putAll(settings);
+            }
             return this;
         }
 
@@ -148,6 +152,10 @@ public class CrateTestCluster extends ExternalResource {
                 throw new IllegalArgumentException(String.format("invalid number of nodes: %d", numberOfNodes));
             }
             this.numberOfNodes = numberOfNodes;
+            if (settings.isEmpty()) {
+                settings = new HashMap<>();
+            }
+            settings.put("node.max_local_storage_nodes", numberOfNodes);
             return this;
         }
 
