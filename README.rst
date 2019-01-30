@@ -100,9 +100,7 @@ Help
 
 Looking for more help?
 
-- Check `StackOverflow`_ for common problems
-- Chat with us on `Slack`_
-- Get `paid support`_
+- Check out our `support channels`_
 
 .. _Bintray: https://bintray.com/crate/crate/
 .. _contribution docs: CONTRIBUTING.rst
@@ -111,6 +109,4 @@ Looking for more help?
 .. _JCenter: https://bintray.com/bintray/jcenter
 .. _JUnit external resources:  https://github.com/junit-team/junit/wiki/Rules#externalresource-rules
 .. _overview page: https://bintray.com/crate/crate/
-.. _paid support: https://crate.io/pricing/
-.. _Slack: https://crate.io/docs/support/slackin/
-.. _StackOverflow: https://stackoverflow.com/tags/crate
+.. _support channels: https://crate.io/support/
