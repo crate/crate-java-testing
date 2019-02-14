@@ -106,17 +106,24 @@ public class CrateTestCluster extends ExternalResource {
                 throw new IllegalArgumentException("No download source given (version, git-ref, url, file)");
             }
             Matcher matcher;
+            String crateFileName;
             try {
-                matcher = VERSION_REGEX.matcher(downloadSource.downloadUrl().getFile().toLowerCase());
+                crateFileName = downloadSource.downloadUrl().getFile().toLowerCase();
             } catch (MalformedURLException e) {
                 throw new IllegalArgumentException("Provided download source url is malformed", e);
             }
+            matcher = VERSION_REGEX.matcher(crateFileName);
             if (!matcher.find()) {
-                throw new IllegalArgumentException(
-                    "Cannot extract crate version from the url. The version format might be malformed."
-                );
+                if (crateFileName.contains("latest")) {
+                    this.crateVersion = "latest";
+                } else {
+                    throw new IllegalArgumentException(
+                            "Cannot extract crate version from the url. The version format might be malformed."
+                    );
+                }
+            } else {
+                this.crateVersion = matcher.group(0);
             }
-            this.crateVersion = matcher.group(0);
             this.downloadSource = downloadSource;
         }
 

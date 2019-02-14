@@ -32,6 +32,14 @@ class CrateVersion implements Comparable<String> {
 
     @Override
     public int compareTo(String o) {
+        if (version.equals("latest") && o.equals("latest")) {
+            return 0;
+        } else if (version.equals("latest")) {
+            return 1;
+        } else if (o.equals("latest")) {
+            return -1;
+        }
+
         String[] v1 = version.split("\\.");
         String[] v2 = o.split("\\.");
         int i = 0;
