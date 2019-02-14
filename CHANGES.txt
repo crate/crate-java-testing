@@ -5,6 +5,9 @@ Changes for Crate-Java-Testing
 Unreleased
 ==========
 
+ * Disable distribution download caching when the "latest" version placeholder
+   is used.
+
 2019/02/14 0.6.3
 ================
 

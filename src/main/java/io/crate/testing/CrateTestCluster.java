@@ -40,6 +40,7 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeoutException;
@@ -52,6 +53,7 @@ public class CrateTestCluster extends ExternalResource {
 
     private static final Path TMP_CACHE_DIR = CRATE_TMP_DIR.resolve("downloads");
     public static final Path TMP_WORKING_DIR = CRATE_TMP_DIR.resolve("working");
+    private static final String LATEST_DISTRIBUTION_VERSION_IDENTIFIER = "latest";
 
     private final UUID clusterUUID = UUID.randomUUID();
 
@@ -114,8 +116,8 @@ public class CrateTestCluster extends ExternalResource {
             }
             matcher = VERSION_REGEX.matcher(crateFileName);
             if (!matcher.find()) {
-                if (crateFileName.contains("latest")) {
-                    this.crateVersion = "latest";
+                if (crateFileName.contains(LATEST_DISTRIBUTION_VERSION_IDENTIFIER)) {
+                    this.crateVersion = LATEST_DISTRIBUTION_VERSION_IDENTIFIER;
                 } else {
                     throw new IllegalArgumentException(
                             "Cannot extract crate version from the url. The version format might be malformed."
@@ -367,7 +369,8 @@ public class CrateTestCluster extends ExternalResource {
             tarGz = TMP_CACHE_DIR.resolve(tarGzFileName);
         }
 
-        if (Files.exists(tarGz)) {
+        boolean isLatestDistribution = tarGzFileName.contains(LATEST_DISTRIBUTION_VERSION_IDENTIFIER);
+        if (!isLatestDistribution && Files.exists(tarGz)) {
             Utils.log("No need to download crate. Already downloaded %s to: %s", downloadSource, tarGz);
         } else {
             Path tarGzPart = TMP_CACHE_DIR.resolve(String.format("%s.part-%s", tarGzFileName, clusterUUID));
@@ -375,7 +378,11 @@ public class CrateTestCluster extends ExternalResource {
             try (InputStream in = downloadSource.downloadUrl().openStream()) {
                 Files.copy(in, tarGzPart);
             }
-            Files.move(tarGzPart, tarGz);
+            if(isLatestDistribution) {
+                Files.move(tarGzPart, tarGz, StandardCopyOption.REPLACE_EXISTING);
+            } else {
+                Files.move(tarGzPart, tarGz);
+            }
         }
         return tarGz;
     }
