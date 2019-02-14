@@ -40,6 +40,7 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeoutException;
@@ -368,7 +369,8 @@ public class CrateTestCluster extends ExternalResource {
             tarGz = TMP_CACHE_DIR.resolve(tarGzFileName);
         }
 
-        if (!tarGzFileName.contains(LATEST_DISTRIBUTION_VERSION_IDENTIFIER) && Files.exists(tarGz)) {
+        boolean isLatestDistribution = tarGzFileName.contains(LATEST_DISTRIBUTION_VERSION_IDENTIFIER);
+        if (!isLatestDistribution && Files.exists(tarGz)) {
             Utils.log("No need to download crate. Already downloaded %s to: %s", downloadSource, tarGz);
         } else {
             Path tarGzPart = TMP_CACHE_DIR.resolve(String.format("%s.part-%s", tarGzFileName, clusterUUID));
@@ -376,7 +378,11 @@ public class CrateTestCluster extends ExternalResource {
             try (InputStream in = downloadSource.downloadUrl().openStream()) {
                 Files.copy(in, tarGzPart);
             }
-            Files.move(tarGzPart, tarGz);
+            if(isLatestDistribution) {
+                Files.move(tarGzPart, tarGz, StandardCopyOption.REPLACE_EXISTING);
+            } else {
+                Files.move(tarGzPart, tarGz);
+            }
         }
         return tarGz;
     }
