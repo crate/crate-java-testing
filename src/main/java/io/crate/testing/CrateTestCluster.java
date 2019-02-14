@@ -52,6 +52,7 @@ public class CrateTestCluster extends ExternalResource {
 
     private static final Path TMP_CACHE_DIR = CRATE_TMP_DIR.resolve("downloads");
     public static final Path TMP_WORKING_DIR = CRATE_TMP_DIR.resolve("working");
+    private static final String LATEST_DISTRIBUTION_VERSION_IDENTIFIER = "latest";
 
     private final UUID clusterUUID = UUID.randomUUID();
 
@@ -114,8 +115,8 @@ public class CrateTestCluster extends ExternalResource {
             }
             matcher = VERSION_REGEX.matcher(crateFileName);
             if (!matcher.find()) {
-                if (crateFileName.contains("latest")) {
-                    this.crateVersion = "latest";
+                if (crateFileName.contains(LATEST_DISTRIBUTION_VERSION_IDENTIFIER)) {
+                    this.crateVersion = LATEST_DISTRIBUTION_VERSION_IDENTIFIER;
                 } else {
                     throw new IllegalArgumentException(
                             "Cannot extract crate version from the url. The version format might be malformed."
@@ -367,7 +368,7 @@ public class CrateTestCluster extends ExternalResource {
             tarGz = TMP_CACHE_DIR.resolve(tarGzFileName);
         }
 
-        if (Files.exists(tarGz)) {
+        if (!tarGzFileName.contains(LATEST_DISTRIBUTION_VERSION_IDENTIFIER) && Files.exists(tarGz)) {
             Utils.log("No need to download crate. Already downloaded %s to: %s", downloadSource, tarGz);
         } else {
             Path tarGzPart = TMP_CACHE_DIR.resolve(String.format("%s.part-%s", tarGzFileName, clusterUUID));
