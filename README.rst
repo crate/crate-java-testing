@@ -77,7 +77,7 @@ Example usage in a Java test:
 
     @ClassRule
     public static final CrateTestCluster TEST_CLUSTER =
-        CrateTestCluster.fromVersion("0.52.4")
+        CrateTestCluster.fromVersion("3.3.2")
         .clusterName("with-builder")
         .numberOfNodes(3)
         .build();

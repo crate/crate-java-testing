@@ -35,7 +35,8 @@ import java.util.Map;
 public class CrateTestServer extends ExternalResource {
 
     private static final CrateVersion MIN_C_OPTION_VERSION = new CrateVersion("1.0.0");
-    private static final CrateVersion MIN_REFACTORED_OPTION_VERSION = new CrateVersion("2.0.0");
+    private static final CrateVersion VERSION_2_0_0 = new CrateVersion("2.0.0");
+    private static final CrateVersion VERSION_4_0_0 = new CrateVersion("4.0.0");
 
     private final int httpPort;
     private final int transportPort;
@@ -113,22 +114,7 @@ public class CrateTestServer extends ExternalResource {
     }
 
     private void startCrateAsDaemon() throws IOException, InterruptedException {
-        Map<String, Object> settingsMap = new HashMap<String, Object>() {{
-            put("network.host", crateHost);
-            put("cluster.name", clusterName);
-            put("http.port", httpPort);
-            put("psql.port", psqlPort);
-            put("psql.enabled", true);
-            put("transport.tcp.port", transportPort);
-            put("discovery.zen.ping.unicast.hosts", Utils.join(unicastHosts, ","));
-        }};
-
-        if (MIN_REFACTORED_OPTION_VERSION.gt(crateVersion)) {
-            settingsMap.put("discovery.zen.ping.multicast.enabled", "false");
-            settingsMap.put("index.storage.type", "memory");
-        }
-
-        settingsMap.putAll(nodeSettings);
+        Map<String, Object> settingsMap = prepareSettings();
 
         String[] command = new String[settingsMap.size() + commandLineArguments.size() + 1];
         int idx = 0;
@@ -180,5 +166,30 @@ public class CrateTestServer extends ExternalResource {
 
     private static boolean isWindows() {
         return System.getProperty("os.name").toLowerCase(Locale.ENGLISH).contains("win");
+    }
+
+    Map<String, Object> prepareSettings() {
+        Map<String, Object> settings = new HashMap<>();
+        settings.put("network.host", crateHost);
+        settings.put("cluster.name", clusterName);
+        settings.put("http.port", httpPort);
+        settings.put("psql.port", psqlPort);
+        settings.put("psql.enabled", true);
+        settings.put("transport.tcp.port", transportPort);
+
+        if (VERSION_4_0_0.gt(crateVersion)) {
+            settings.put("discovery.zen.ping.unicast.hosts", Utils.join(unicastHosts, ","));
+        } else {
+            settings.put("discovery.seed_hosts", Utils.join(unicastHosts, ","));
+            settings.put("cluster.initial_master_nodes", Utils.join(unicastHosts, ","));
+        }
+
+        if (VERSION_2_0_0.gt(crateVersion)) {
+            settings.put("discovery.zen.ping.multicast.enabled", "false");
+            settings.put("index.storage.type", "memory");
+        }
+
+        settings.putAll(nodeSettings);
+        return settings;
     }
 }

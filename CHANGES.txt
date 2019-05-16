@@ -5,16 +5,18 @@ Changes for Crate-Java-Testing
 Unreleased
 ==========
 
+ * Added support for CrateDB >= 4.x.
+
 2019/02/14 0.6.4
 ================
 
- * Disable distribution download caching when the "latest" version placeholder
+ * Disabled distribution download caching when the "latest" version placeholder
    is used.
 
 2019/02/14 0.6.3
 ================
 
- * Add support to start a test cluster from "latest" placeholder urls.
+ * Added support to start a test cluster from "latest" placeholder urls.
 
 2018/04/24 0.6.2
 ================

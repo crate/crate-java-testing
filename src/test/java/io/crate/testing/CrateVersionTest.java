@@ -36,6 +36,7 @@ public class CrateVersionTest {
         assertThat(new CrateVersion("1.0.0").gt("0.57.1"), is(true));
         assertThat(new CrateVersion("1.0.0").gt("0.57"), is(true));
         assertThat(new CrateVersion("1.0.0").gt("1.1.1"), is(false));
+        assertThat(new CrateVersion("latest").gt("1.1.1"), is(true));
     }
 
     @Test
@@ -45,5 +46,6 @@ public class CrateVersionTest {
         assertThat(new CrateVersion("1.0.0").lt("0.57.1"), is(false));
         assertThat(new CrateVersion("1.0.0").lt("0.57"), is(false));
         assertThat(new CrateVersion("1.0.0").lt("1.1.1"), is(true));
+        assertThat(new CrateVersion("1.0.0").lt("latest"), is(true));
     }
 }
