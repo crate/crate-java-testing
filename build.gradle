@@ -52,19 +52,21 @@ idea {
     }
 }
 
-task wrapper(type: Wrapper) {
-    gradleVersion = '4.7'
+wrapper {
+    gradleVersion = '5.4.1'
 }
 
-task getVersion ( dependsOn: 'classes') << {
-    ext.gitTag = "git describe".execute().in.text.trim()
+task getVersion ( dependsOn: 'classes') {
+    doLast {
+        ext.gitTag = "git describe".execute().in.text.trim()
 
-    if (!gradle.taskGraph.hasTask(uploadArchives)) {
-        version = version + "-" + "git rev-parse --short HEAD".execute().in.text.trim()
+        if (!gradle.taskGraph.hasTask(uploadArchives)) {
+            version = version + "-" + "git rev-parse --short HEAD".execute().in.text.trim()
+        }
+
+        logger.quiet("gitTag: " + gitTag)
+        logger.quiet("version: " + version)
     }
-
-    logger.quiet("gitTag: " + gitTag)
-    logger.quiet("version: " + version)
 }
 
 sourceSets {
@@ -97,7 +99,7 @@ task myJavadocs(type: Javadoc, dependsOn: processResources) {
     source = sourceSets.main.allJava
 }
 
-task javadocJar (type: Jar, dependsOn: [myJavadocs]) {
+task javadocJar (type: Jar, dependsOn: [getVersion, myJavadocs]) {
     classifier = 'javadoc'
     from myJavadocs.destinationDir
     manifest {
@@ -105,11 +107,7 @@ task javadocJar (type: Jar, dependsOn: [myJavadocs]) {
     }
 }
 
-task buildJavadocJar (dependsOn: [getVersion, myJavadocs] ) << {
-    tasks.javadocJar.execute()
-}
-
-task sourceJar (type : Jar) {
+task sourceJar (type : Jar, dependsOn: [getVersion]) {
     classifier = 'sources'
     from sourceSets.main.allSource
     manifest {
@@ -117,18 +115,13 @@ task sourceJar (type : Jar) {
     }
 }
 
-task buildSourceJar (dependsOn: [getVersion] ) << {
-    tasks.sourceJar.execute()
-}
-
-
 artifacts {
     archives jar
     archives javadocJar
     archives sourceJar
 }
 
-task signJars (type : Sign, dependsOn: [jar, buildJavadocJar, buildSourceJar]) {
+task signJars (type : Sign, dependsOn: [jar, javadocJar, sourceJar]) {
     sign configurations.archives
 }
 
