@@ -44,8 +44,8 @@ public class CrateTestServer extends ExternalResource {
 
     private static final Map<String, String> JDK_8_JAVA_HOME_CANDIDATES = new HashMap<>(3);
     static {
-        JDK_8_JAVA_HOME_CANDIDATES.put("/usr/lib/jvm/", "java-8-openjdk");
-        JDK_8_JAVA_HOME_CANDIDATES.put("/usr/lib/", "java-1.8.0");
+        JDK_8_JAVA_HOME_CANDIDATES.put("/usr/lib/jvm/", "**java-8*");
+        JDK_8_JAVA_HOME_CANDIDATES.put("/usr/lib/", "**java-1.8.0*");
         JDK_8_JAVA_HOME_CANDIDATES.put("/Library/Java/JavaVirtualMachines/", "**jdk*1.8*/Contents/Home");
     }
 
