@@ -24,19 +24,30 @@ package io.crate.testing;
 import org.junit.rules.ExternalResource;
 
 import java.io.IOException;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 
 public class CrateTestServer extends ExternalResource {
 
     private static final CrateVersion MIN_C_OPTION_VERSION = new CrateVersion("1.0.0");
     private static final CrateVersion VERSION_2_0_0 = new CrateVersion("2.0.0");
+    private static final CrateVersion VERSION_3_2_0 = new CrateVersion("3.2.0");
     private static final CrateVersion VERSION_4_0_0 = new CrateVersion("4.0.0");
+
+    private static final Map<String, String> JDK_8_JAVA_HOME_CANDIDATES = new HashMap<>(3);
+    static {
+        JDK_8_JAVA_HOME_CANDIDATES.put("/usr/lib/jvm/", "java-8-openjdk");
+        JDK_8_JAVA_HOME_CANDIDATES.put("/usr/lib/", "java-1.8.0");
+        JDK_8_JAVA_HOME_CANDIDATES.put("/Library/Java/JavaVirtualMachines/", "**jdk*1.8*/Contents/Home");
+    }
 
     private final int httpPort;
     private final int transportPort;
@@ -145,8 +156,8 @@ public class CrateTestServer extends ExternalResource {
         assert Files.exists(workingDir);
         processBuilder.directory(workingDir.toFile());
         processBuilder.inheritIO();
+        prepareEnvironment(processBuilder.environment(), crateVersion);
         crateProcess = processBuilder.start();
-
 
         // shut down crate process when JVM is cancelled
         Runtime.getRuntime().addShutdownHook(new Thread() {
@@ -191,5 +202,22 @@ public class CrateTestServer extends ExternalResource {
 
         settings.putAll(nodeSettings);
         return settings;
+    }
+
+    static void prepareEnvironment(Map<String, String> env, String crateVersion) {
+        if (VERSION_3_2_0.gt(crateVersion)) {
+            for (Map.Entry<String, String> entry : JDK_8_JAVA_HOME_CANDIDATES.entrySet()) {
+                try {
+                    Optional<Path> match = match("glob:" + entry.getValue(), entry.getKey());
+                    match.ifPresent(path -> env.put("JAVA_HOME", path.toFile().getAbsolutePath()));
+                } catch (Exception ignored) {
+                }
+            }
+        }
+    }
+
+    private static Optional<Path> match(String glob, String location) throws IOException {
+        PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher(glob);
+        return Files.walk(Paths.get(location)).filter(pathMatcher::matches).findFirst();
     }
 }

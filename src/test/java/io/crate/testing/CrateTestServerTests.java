@@ -25,8 +25,11 @@ import com.carrotsearch.randomizedtesting.RandomizedTest;
 import org.junit.Test;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.core.Is.is;
 
 public class CrateTestServerTests extends RandomizedTest {
@@ -84,5 +87,19 @@ public class CrateTestServerTests extends RandomizedTest {
 
         assertThat(settings.get("discovery.seed_hosts"), is("localhost,1.1.1.1"));
         assertThat(settings.get("cluster.initial_master_nodes"), is("localhost,1.1.1.1"));
+    }
+
+    @Test
+    public void testJDK8IsUsedForCrateLt3_2() {
+        HashMap<String, String> env = new HashMap<>();
+        CrateTestServer.prepareEnvironment(env, "3.0.0");
+        assertThat(env.get("JAVA_HOME"), containsString("1.8"));
+    }
+
+    @Test
+    public void testJDK8IsNotUsedForCrateGte3_2() {
+        HashMap<String, String> env = new HashMap<>();
+        CrateTestServer.prepareEnvironment(env, "3.2.0");
+        assertThat(env.get("JAVA_HOME"), nullValue());
     }
 }
