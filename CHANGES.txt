@@ -5,6 +5,9 @@ Changes for Crate-Java-Testing
 Unreleased
 ==========
 
+2019/05/20 0.7.0
+================
+
  * Added support for CrateDB >= 4.x.
 
 2019/02/14 0.6.4
