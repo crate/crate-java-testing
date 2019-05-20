@@ -103,8 +103,10 @@ task javadocJar (type: Jar, dependsOn: [getVersion, myJavadocs]) {
     baseName 'crate-testing'
     classifier = 'javadoc'
     from myJavadocs.destinationDir
-    manifest {
-        attributes("Implementation-Title": "Crate.IO Testing")
+    doLast {
+        manifest {
+            attributes("Implementation-Title": "Crate.IO Testing", "Implementation-Version": project.version)
+        }
     }
 }
 
@@ -112,13 +114,14 @@ task sourceJar (type : Jar, dependsOn: [getVersion]) {
     baseName 'crate-testing'
     classifier = 'sources'
     from sourceSets.main.allSource
-    manifest {
-        attributes("Implementation-Title": "Crate.IO Testing")
+    doLast {
+        manifest {
+            attributes("Implementation-Title": "Crate.IO Testing", "Implementation-Version": project.version)
+        }
     }
 }
 
 artifacts {
-    archives jar
     archives javadocJar
     archives sourceJar
 }
