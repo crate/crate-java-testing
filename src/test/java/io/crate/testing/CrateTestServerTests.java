@@ -28,8 +28,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.core.Is.is;
 
 public class CrateTestServerTests extends RandomizedTest {
@@ -93,7 +92,7 @@ public class CrateTestServerTests extends RandomizedTest {
     public void testJDK8IsUsedForCrateLt3_2() {
         HashMap<String, String> env = new HashMap<>();
         CrateTestServer.prepareEnvironment(env, "3.0.0");
-        assertThat(env.get("JAVA_HOME"), containsString("1.8"));
+        assertThat(env.get("JAVA_HOME"), anyOf(containsString("1.8"), containsString("java-8")));
     }
 
     @Test

@@ -46,7 +46,12 @@ public class FromLatestUrlTest extends BaseTest {
     public void setUp() throws MalformedURLException {
         prepare(fromUrlCluster);
     }
-
+    
+    /**
+     * This test uses latest nightly build of crate and CrateDB 4.x requires JDK 11
+     * and so this might fail if you're using older version of JDK.
+     * @throws Exception
+     */
     @Test
     public void testFromLatestUrl() throws Exception {
         JsonObject obj = execute("select name from sys.cluster");
