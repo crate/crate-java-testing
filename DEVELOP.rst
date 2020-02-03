@@ -23,6 +23,13 @@ Run the unit tests like so::
 
 .. _Gradle: https://gradle.org/
 
+Vulnerability Check
+===================
+
+Dependencies can be checked for known vulnerabilities by running::
+
+    $ ./gradlew dependencyCheckAnalyze
+
 Preparing a Release
 ===================
 
