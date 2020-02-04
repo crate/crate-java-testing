@@ -24,23 +24,27 @@ package io.crate.testing;
 import com.carrotsearch.randomizedtesting.RandomizedTest;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.hamcrest.CoreMatchers.*;
+import static org.hamcrest.CoreMatchers.anyOf;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 
 public class CrateTestServerTests extends RandomizedTest {
 
 
-    private CrateTestServer serverOf(String version) {
+    private CrateTestServer serverOf(String version) throws IOException {
         return new CrateTestServer(
                 "test-cluster",
                 4200,
                 4300,
                 5432,
-                newTempDir().toPath(),
+                newTempDir().toAbsolutePath(),
                 "localhost",
                 Collections.emptyMap(),
                 Collections.emptyMap(),
@@ -50,7 +54,7 @@ public class CrateTestServerTests extends RandomizedTest {
     }
 
     @Test
-    public void testPrepareSettingsForAnyVersion() {
+    public void testPrepareSettingsForAnyVersion() throws Exception {
         CrateTestServer server = serverOf("0.0.0");
         Map<String, Object> settings = server.prepareSettings();
 
@@ -63,7 +67,7 @@ public class CrateTestServerTests extends RandomizedTest {
     }
 
     @Test
-    public void testPrepareSettingsForLt2_0() {
+    public void testPrepareSettingsForLt2_0() throws Exception {
         CrateTestServer server = serverOf("1.0.0");
         Map<String, Object> settings = server.prepareSettings();
 
@@ -72,7 +76,7 @@ public class CrateTestServerTests extends RandomizedTest {
     }
 
     @Test
-    public void testPrepareSettingsForLt4_0() {
+    public void testPrepareSettingsForLt4_0() throws Exception {
         CrateTestServer server = serverOf("3.0.0");
         Map<String, Object> settings = server.prepareSettings();
 
@@ -80,7 +84,7 @@ public class CrateTestServerTests extends RandomizedTest {
     }
 
     @Test
-    public void testPrepareSettingsForGte4_0() {
+    public void testPrepareSettingsForGte4_0() throws Exception {
         CrateTestServer server = serverOf("4.0.0");
         Map<String, Object> settings = server.prepareSettings();
 

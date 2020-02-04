@@ -35,6 +35,7 @@ import java.util.Collection;
 import java.util.HashMap;
 
 import static io.crate.testing.Constants.CRATE_VERSION_FOR_TESTS;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 
 public class ClusterTest extends BaseTest {

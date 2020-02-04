@@ -34,6 +34,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static io.crate.testing.Constants.CRATE_VERSION_FOR_TESTS;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * testing multiple starts and stops of a crate test cluster

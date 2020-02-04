@@ -35,6 +35,7 @@ import java.net.MalformedURLException;
 
 import static io.crate.testing.Constants.CRATE_VERSION_FOR_TESTS;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 public class SimpleIntegrationTest extends BaseTest {
 
