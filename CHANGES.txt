@@ -5,6 +5,9 @@ Changes for Crate-Java-Testing
 Unreleased
 ==========
 
+2020/02/05 0.8.0
+================
+
 * Upgraded dependencies to latest stable versions.
 
 2019/05/20 0.7.0
