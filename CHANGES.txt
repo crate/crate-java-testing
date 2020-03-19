@@ -5,6 +5,8 @@ Changes for Crate-Java-Testing
 Unreleased
 ==========
 
+* Added support for CrateDB tarballs with bundled JDK.
+
 2020/02/05 0.8.0
 ================
 

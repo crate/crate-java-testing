@@ -143,12 +143,10 @@ public class Utils {
         // tarIn is a TarArchiveInputStream
         while (tarEntry != null) {
             Path entryPath = Paths.get(tarEntry.getName());
-
             if (entryPath.getNameCount() == 1) {
                 tarEntry = tarIn.getNextTarEntry();
                 continue;
             }
-
             Path strippedPath = entryPath.subpath(1, entryPath.getNameCount());
             File destPath = new File(dest, strippedPath.toString());
 
@@ -157,15 +155,15 @@ public class Utils {
             } else {
                 destPath.createNewFile();
                 byte[] btoRead = new byte[1024];
-                BufferedOutputStream bout =
-                        new BufferedOutputStream(new FileOutputStream(destPath));
-                int len;
-                while ((len = tarIn.read(btoRead)) != -1) {
-                    bout.write(btoRead, 0, len);
+                try (BufferedOutputStream bout = new BufferedOutputStream(new FileOutputStream(destPath))) {
+                    int len;
+                    while ((len = tarIn.read(btoRead)) != -1) {
+                        bout.write(btoRead, 0, len);
+                    }
                 }
-
-                bout.close();
-                if (destPath.getParent().equals(dest.getPath() + "/bin")) {
+                if (destPath.getPath().endsWith("bin/crate")) {
+                    destPath.setExecutable(true);
+                } else if (destPath.getPath().endsWith("/jdk/bin/java")) {
                     destPath.setExecutable(true);
                 }
             }
