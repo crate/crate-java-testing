@@ -163,7 +163,7 @@ public class Utils {
                 }
                 if (destPath.getPath().endsWith("bin/crate")) {
                     destPath.setExecutable(true);
-                } else if (destPath.getPath().endsWith("/jdk/bin/java")) {
+                } else if (destPath.getPath().endsWith("/bin/java")) {
                     destPath.setExecutable(true);
                 }
             }
