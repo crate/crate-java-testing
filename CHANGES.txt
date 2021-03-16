@@ -5,6 +5,9 @@ Changes for Crate-Java-Testing
 Unreleased
 ==========
 
+- Migrated from Bintray to Maven Central. All new releases go to Maven Central
+  from now on.
+
 2020/06/09 0.9.1
 ================
 
