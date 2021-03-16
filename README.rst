@@ -11,25 +11,10 @@ afterwards.
 Setup
 =====
 
-JAR files are hosted on `Bintray`_ and available via `JCenter`_.
-
-If you want to use ``crate-testing`` with your Maven project, add the Bintray
-repository to your ``pom.xml``:
+JAR files are hosted on `Maven Central`_.
 
 .. code-block:: xml
 
-    ...
-    <repositories>
-        ...
-        <repository>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-            <id>bintray</id>
-            <name>bintray</name>
-            <url>http://dl.bintray.com/crate/crate</url>
-        </repository>
-    </repositories>
     ...
     <dependencies>
         ...
@@ -47,7 +32,7 @@ You can integrate with Gradle like so:
 
     repositories {
         ...
-        jcenter()
+        mavenCentral()
     }
 
     dependencies {
@@ -55,8 +40,6 @@ You can integrate with Gradle like so:
         ...
     }
 
-Alternatively you can follow the instructions on the Bintray repository
-`overview page`_ by selecting the *Set me up!* button.
 
 ``CrateTestCluster``
 ===================
@@ -102,11 +85,9 @@ Looking for more help?
 
 - Check out our `support channels`_
 
-.. _Bintray: https://bintray.com/crate/crate/
+.. _Maven Central: https://repo1.maven.org/maven2/io/crate/
 .. _contribution docs: CONTRIBUTING.rst
 .. _Crate.io: http://crate.io/
 .. _developer docs: DEVELOP.rst
-.. _JCenter: https://bintray.com/bintray/jcenter
 .. _JUnit external resources:  https://github.com/junit-team/junit/wiki/Rules#externalresource-rules
-.. _overview page: https://bintray.com/crate/crate/
 .. _support channels: https://crate.io/support/
