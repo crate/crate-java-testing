@@ -26,61 +26,60 @@
 #       E.g.: ./devtools/create_tag.sh
 
 # check if everything is committed
-CLEAN=`git status -s`
-if [ ! -z "$CLEAN" ]
+CLEAN=$(git status -s)
+if [ -n "$CLEAN" ]
 then
    echo "Working directory not clean. Please commit all changes before tagging"
    echo "Aborting."
-   exit -1
+   exit 1
 fi
 
 echo "Fetching origin..."
 git fetch origin > /dev/null
 
-# get current branc
-BRANCH=`git branch | grep "^*" | cut -d " " -f 2`
+BRANCH=$(git branch --show-current)
 echo "Current branch is $BRANCH."
 
 # check if BRANCH == origin/BRANCH
-LOCAL_COMMIT=`git show --format="%H" $BRANCH`
-ORIGIN_COMMIT=`git show --format="%H" origin/$BRANCH`
+LOCAL_COMMIT=$(git show --format="%H" "$BRANCH")
+ORIGIN_COMMIT=$(git show --format="%H" "origin/$BRANCH")
 
 if [ "$LOCAL_COMMIT" != "$ORIGIN_COMMIT" ]
 then
    echo "Local $BRANCH is not up to date. "
    echo "Aborting."
-   exit -1
+   exit 1
 fi
 
 # get the version
 echo "Getting version ..."
-VERSION=`./gradlew getVersion | grep version | awk '{print $2;}' | cut -d '-' -f1`
+VERSION=$(./gradlew getVersion | grep version | awk '{print $2;}' | cut -d '-' -f1)
 echo "$VERSION"
 
 if [ "${VERSION}x" == "x" ]
 then
     echo "VERSION not provided"
     echo "Aborting."
-    exit -1
+    exit 1
 fi
 
 # check if tag to create has already been created
-EXISTS=`git tag | grep $VERSION`
+EXISTS=$(git tag | grep "$VERSION")
 
 if [ "$VERSION" == "$EXISTS" ]
 then
    echo "Revision $VERSION already tagged."
    echo "Aborting."
-   exit -1
+   exit 1
 fi
 
 # check if VERSION is in head of CHANGES.txt
-REV_NOTE=`grep "[0-9/]\{10\} $VERSION" CHANGES.txt`
+REV_NOTE=$(grep "[0-9/]\{10\} $VERSION" CHANGES.txt)
 if [ -z "$REV_NOTE" ]
 then
     echo "No notes for revision $VERSION found in CHANGES.txt"
     echo "Aborting."
-    exit -1
+    exit 1
 fi
 
 echo "Creating tag $VERSION..."
