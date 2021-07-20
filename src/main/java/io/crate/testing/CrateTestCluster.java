@@ -259,15 +259,18 @@ public class CrateTestCluster extends ExternalResource {
 
     private void waitUntilClusterIsReady(final int timeoutMillis) throws TimeoutException, InterruptedException {
         final CrateTestServer[] localServers = serversSafe();
-        int iteration = 0;
-        long startWaiting = System.currentTimeMillis();
+        long startInNanos = System.nanoTime();
+        long sleepMs = 1;
+        double nsToMs = 0.000001;
         while (true) {
             try {
-                if (System.currentTimeMillis() - startWaiting > timeoutMillis) {
+                long elapsedNanos = System.nanoTime() - startInNanos;
+                if ((elapsedNanos * nsToMs) > timeoutMillis) {
                     throw new TimeoutException(String.format("Cluster has not been started within %d seconds",
                             timeoutMillis / 1000));
                 }
-                Thread.sleep(++iteration * 100);
+                Thread.sleep(sleepMs);
+                sleepMs = sleepMs * 2;
                 if (clusterIsReady(localServers)) {
                     break;
                 }
