@@ -2,8 +2,12 @@
 Changes for Crate-Java-Testing
 ==============================
 
-Unreleased
-==========
+2021-07-20 0.10.0
+=================
+
+- Bumped the minimum required Java version to 11.
+
+- Added a new ``pid`` property to ``CrateTestServer``
 
 - Migrated from Bintray to Maven Central. All new releases go to Maven Central
   from now on.

@@ -16,7 +16,7 @@ plugins {
 
 description = 'Crate Testing'
 group = "io.crate"
-project.version = '0.9.1'
+project.version = "$version"
 
 repositories {
     mavenCentral()

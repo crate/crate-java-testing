@@ -12,6 +12,7 @@
 /out
 /downloads
 /parts
+bin/
 
 # Ignore Gradle GUI config
 gradle-app.setting
