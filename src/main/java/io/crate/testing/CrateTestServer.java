@@ -21,8 +21,6 @@
 
 package io.crate.testing;
 
-import org.junit.rules.ExternalResource;
-
 import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -34,6 +32,10 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+
+import org.junit.rules.ExternalResource;
 
 public class CrateTestServer extends ExternalResource {
 
@@ -59,6 +61,7 @@ public class CrateTestServer extends ExternalResource {
     private final Map<String, Object> nodeSettings;
     private final Map<String, Object> commandLineArguments;
     private final String crateVersion;
+    private final CompletableFuture<Long> pid = new CompletableFuture<>();
 
     private Process crateProcess;
 
@@ -81,6 +84,10 @@ public class CrateTestServer extends ExternalResource {
 
     public String clusterName() {
         return clusterName;
+    }
+
+    public CompletionStage<Long> pid() {
+        return pid;
     }
 
     public CrateTestServer(String clusterName,
@@ -108,7 +115,11 @@ public class CrateTestServer extends ExternalResource {
     @Override
     protected void before() throws Throwable {
         Utils.log("Starting crate server process...");
-        startCrateAsDaemon();
+        try {
+            pid.complete(startCrateAsDaemon());
+        } catch (Exception ex) {
+            pid.completeExceptionally(ex);
+        }
     }
 
     @Override
@@ -124,7 +135,7 @@ public class CrateTestServer extends ExternalResource {
         }
     }
 
-    private void startCrateAsDaemon() throws IOException, InterruptedException {
+    private long startCrateAsDaemon() throws IOException, InterruptedException {
         Map<String, Object> settingsMap = prepareSettings();
 
         String[] command = new String[settingsMap.size() + commandLineArguments.size() + 1];
@@ -173,6 +184,7 @@ public class CrateTestServer extends ExternalResource {
                 }
             }
         });
+        return crateProcess.pid();
     }
 
     private static boolean isWindows() {
