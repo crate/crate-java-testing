@@ -1,0 +1,31 @@
+---
+name: tests
+on:
+  pull_request: ~
+  push:
+    branches:
+      - master
+
+jobs:
+  test:
+    name: Run tests
+    runs-on: [ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Java
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'adopt'
+          java-version: 11
+
+      - name: Run gradle test
+        uses: eskatos/gradle-command-action@v1
+        with:
+          arguments: test
+
+      - name: Upload results to wacklig
+        if: always()
+        env:
+          WACKLIG_TOKEN: ${{ secrets.WACKLIG_TOKEN }}
+        run: |
+          curl -s https://raw.githubusercontent.com/pipifein/wacklig-uploader/master/wacklig.py | python - --token $WACKLIG_TOKEN || echo "Upload to wacklig failed"
