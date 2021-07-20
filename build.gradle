@@ -23,7 +23,6 @@ group = "io.crate"
 
 repositories {
     mavenCentral()
-    jcenter()
 }
 
 dependencies {
