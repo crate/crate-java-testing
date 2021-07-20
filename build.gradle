@@ -35,8 +35,8 @@ dependencies {
 apply plugin: 'org.owasp.dependencycheck'
 
 tasks.withType(JavaCompile) {
-    sourceCompatibility = "1.8"
-    targetCompatibility = "1.8"
+    sourceCompatibility = "11"
+    targetCompatibility = "11"
 }
 
 test {
@@ -46,7 +46,7 @@ test {
 
 idea {
     project {
-        languageLevel = 'JDK_1_8'
+        languageLevel = 'JDK_11'
 
         ipr {
             withXml { provider ->
