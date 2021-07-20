@@ -22,6 +22,8 @@
 package io.crate.testing;
 
 import com.carrotsearch.randomizedtesting.RandomizedTest;
+
+import org.junit.Assume;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -94,6 +96,7 @@ public class CrateTestServerTests extends RandomizedTest {
 
     @Test
     public void testJDK8IsUsedForCrateLt3_2() {
+        Assume.assumeTrue("Java8 is available on local system", System.getenv("GITHUB_ACTION") == null);
         HashMap<String, String> env = new HashMap<>();
         CrateTestServer.prepareEnvironment(env, "3.0.0");
         assertThat(env.get("JAVA_HOME"), anyOf(containsString("1.8"), containsString("java-8")));
