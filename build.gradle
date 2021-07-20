@@ -4,39 +4,35 @@ buildscript {
     }
     dependencies {
         classpath 'org.owasp:dependency-check-gradle:5.3.0'
-        classpath 'io.codearte.gradle.nexus:gradle-nexus-staging-plugin:0.30.0'
     }
 }
 
-import org.gradle.api.internal.artifacts.publish.DefaultPublishArtifact
-
 plugins {
     id 'idea'
-    id 'java'
-    id 'maven'
+    id 'java-library'
+    id 'maven-publish'
     id 'signing'
 }
 
 description = 'Crate Testing'
-
 group = "io.crate"
+project.version = '0.9.1'
 
 repositories {
     mavenCentral()
 }
 
 dependencies {
-    compile "junit:junit:$junitVersion"
-    compile "org.apache.commons:commons-compress:$commons_compressVersion"
-    compile "com.google.code.gson:gson:$gsonVersion"
+    api "junit:junit:$junitVersion"
+    implementation "org.apache.commons:commons-compress:$commons_compressVersion"
+    implementation "com.google.code.gson:gson:$gsonVersion"
 
-    testCompile ("com.carrotsearch.randomizedtesting:randomizedtesting-runner:$randomizedTestingVersion") {
+    testImplementation ("com.carrotsearch.randomizedtesting:randomizedtesting-runner:$randomizedTestingVersion") {
         exclude group: 'junit', module: 'junit'
     }
 }
 
 apply plugin: 'org.owasp.dependencycheck'
-apply plugin: 'io.codearte.nexus-staging'
 
 tasks.withType(JavaCompile) {
     sourceCompatibility = "1.8"
@@ -67,20 +63,7 @@ idea {
 }
 
 wrapper {
-    gradleVersion = '5.6.4'
-}
-
-task getVersion ( dependsOn: 'classes') {
-    doLast {
-        ext.gitTag = "git describe".execute().in.text.trim()
-
-        if (!gradle.taskGraph.hasTask(uploadArchives)) {
-            version = version + "-" + "git rev-parse --short HEAD".execute().in.text.trim()
-        }
-
-        logger.quiet("gitTag: " + gitTag)
-        logger.quiet("version: " + version)
-    }
+    gradleVersion = '7.0'
 }
 
 sourceSets {
@@ -97,122 +80,59 @@ sourceSets {
     }
 }
 
-jar.dependsOn getVersion
 jar {
-    baseName 'crate-testing'
-    doLast {
-        ext.version = project.version
-        manifest {
-            attributes("Implementation-Title": "Crate.IO Testing", "Implementation-Version": project.version)
-        }
+    archiveBaseName = 'crate-testing'
+    manifest {
+        attributes(
+            "Implementation-Title": "Crate.IO Testing",
+            "Implementation-Version": project.version
+        )
     }
 }
 
-task myJavadocs(type: Javadoc, dependsOn: processResources) {
-    classpath = configurations.compile
-    source = sourceSets.main.allJava
+java {
+    withJavadocJar()
+    withSourcesJar()
 }
 
-task javadocJar (type: Jar, dependsOn: [getVersion, myJavadocs]) {
-    baseName 'crate-testing'
-    classifier = 'javadoc'
-    from myJavadocs.destinationDir
-    doLast {
-        manifest {
-            attributes("Implementation-Title": "Crate.IO Testing", "Implementation-Version": project.version)
-        }
-    }
-}
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            groupId = 'io.crate'
+            artifactId = 'crate-testing'
+            from components.java
 
-task sourceJar (type : Jar, dependsOn: [getVersion]) {
-    baseName 'crate-testing'
-    classifier = 'sources'
-    from sourceSets.main.allSource
-    doLast {
-        manifest {
-            attributes("Implementation-Title": "Crate.IO Testing", "Implementation-Version": project.version)
-        }
-    }
-}
-
-artifacts {
-    archives javadocJar
-    archives sourceJar
-}
-
-task signJars (type : Sign, dependsOn: [jar, javadocJar, sourceJar]) {
-    sign configurations.archives
-}
-
-
-project.ext.sonatypeUsername = project.hasProperty('sonatypeUsername') ? sonatypeUsername : ""
-project.ext.sonatypePassword = project.hasProperty('sonatypePassword') ? sonatypePassword : ""
-project.ext.url = 'https://crate.io'
-project.ext.scm = {
-    url 'https://github.com/crate/crate-java-testing'
-    connection 'scm:git:git://github.com/crate/crate-java-testing.git'
-    developerConnection 'scm:git:ssh:git@github.com:crate/crate-java-testing.git'
-}
-project.ext.licenses = {
-    license {
-        name 'The Apache Software License, Version 2.0'
-        url 'http://www.apache.org/license/LICENSE-2.0.txt'
-        distribution 'repo'
-    }
-}
-project.ext.developers = {
-    developer {
-        id 'crate'
-        name 'Crate Developers'
-        email 'office@crate.io'
-    }
-}
-
-uploadArchives.dependsOn([signJars])
-uploadArchives {
-    repositories{
-        mavenDeployer {
-            beforeDeployment {
-                MavenDeployment deployment -> signing.signPom(deployment)
-                    if (project.ext.sonatypeUsername.length() == 0 || project.ext.sonatypePassword.length() == 0) {
-                        throw new StopExecutionException("uploadArchives cannot be called without sonatype username and password")
+            pom {
+                name = 'crate-testing'
+                description = 'Test layer for CrateDB'
+                url = 'https://github.com/crate/crate-java-testing'
+                licenses {
+                    license {
+                        name = 'The Apache Software License, Version 2.0'
+                        url = 'http://www.apache.org/license/LICENSE-2.0.txt'
                     }
-
-                    // This is a (very) un-pretty way of attaching the asc files as artifacts to the deployment.
-                    // The mavenDeployer is pretty old, not documented very well - and does not pick up .asc files.
-                    // Here we're slightly abusing the system and creating "fake" .asc artifacts for each .jar file,
-                    // because we know for certain that if we got there, the asc files must exist.
-                    // If we don't do this, Sonatype will not allow promotion to maven central.
-                    artifacts.each { ca ->
-                        if (ca.file.path.endsWith('jar')) {
-                            def ascfile = file(ca.file.path + '.asc')
-                            deployment.addArtifact(new DefaultPublishArtifact(ca.name, "jar.asc", "jar.asc", ca.classifier, null, ascfile))
-                        }
+                }
+                developers {
+                    developer {
+                        id = 'crate'
+                        name = 'Crate Developers'
+                        email = 'office@crate.io'
                     }
-            }
-
-            MavenPom pom = addFilter('crate-testing') {artifact, file ->
-                artifact.name == 'crate-testing'
-            }
-
-            pom.project {
-                artifactId 'crate-testing'
-                name 'crate-testing'
-                description 'Crate.IO Java Test layer which is used to download and start crate for testing'
-                url project.ext.url
-                scm project.ext.scm
-                licenses project.ext.licenses
-                developers project.ext.developers
-            }
-
-            pom.whenConfigured {
-                p -> p.dependencies = p.dependencies.findAll {
-                    dep -> dep.artifactId != "crate-client"
+                }
+                scm {
+                    connection = 'scm:git:git://github.com/crate/crate-java-testing.git'
+                    developerConnection = 'scm:git:ssh:git@github.com:crate/crate-java-testing.git'
+                    url = 'https://github.com/crate/crate-java-testing'
                 }
             }
-
-            repository(id: 'crate-testing', url: 'https://oss.sonatype.org/service/local/staging/deploy/maven2/') {
-                authentication(userName: project.ext.sonatypeUsername, password: project.ext.sonatypePassword)
+        }
+    }
+    repositories {
+        maven {
+            url = 'https://oss.sonatype.org/service/local/staging/deploy/maven2/'
+            credentials {
+                username = project.hasProperty('sonatypeUsername') ? sonatypeUsername : ""
+                password = project.hasProperty('sonatypePassword') ? sonatypePassword : ""
             }
         }
     }
