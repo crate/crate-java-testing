@@ -66,19 +66,6 @@ wrapper {
     gradleVersion = '7.0'
 }
 
-sourceSets {
-    main {
-        java {
-            srcDir 'src/main/java'
-        }
-    }
-    test {
-        resources {
-            srcDir 'src/test/java'
-            include '**/*.tar.gz'
-        }
-    }
-}
 
 jar {
     archiveBaseName = 'crate-testing'
@@ -136,4 +123,9 @@ publishing {
             }
         }
     }
+}
+
+signing {
+    required { gradle.taskGraph.hasTask("publish") }
+    sign publishing.publications.mavenJava
 }
