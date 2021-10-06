@@ -1,9 +1,0 @@
-language: java
-jdk: openjdk11
-
-sudo: false
-
-script: ./gradlew test
-
-notifications:
-  email: false
