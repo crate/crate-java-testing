@@ -2,6 +2,11 @@
 Changes for Crate-Java-Testing
 ==============================
 
+2023-10-04 0.11.0
+=================
+
+- Adapted the tarball extraction logic to handle newer CrateDB tarball formats.
+
 2021-07-20 0.10.0
 =================
 
