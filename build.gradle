@@ -27,6 +27,7 @@ dependencies {
     api "junit:junit:$junitVersion"
     implementation "org.apache.commons:commons-compress:$commons_compressVersion"
     implementation "com.google.code.gson:gson:$gsonVersion"
+    implementation "org.hamcrest:hamcrest-core:2.2"
 
     testImplementation ("com.carrotsearch.randomizedtesting:randomizedtesting-runner:$randomizedTestingVersion") {
         exclude group: 'junit', module: 'junit'

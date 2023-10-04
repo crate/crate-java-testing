@@ -21,10 +21,6 @@
 
 package io.crate.testing;
 
-import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
-import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
-import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
-
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -42,6 +38,10 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Locale;
 import java.util.concurrent.ThreadLocalRandom;
+
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
+import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
+import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
 
 public class Utils {
 
@@ -148,23 +148,21 @@ public class Utils {
                 continue;
             }
             Path strippedPath = entryPath.subpath(1, entryPath.getNameCount());
-            File destPath = new File(dest, strippedPath.toString());
+            File destFile = new File(dest, strippedPath.toString());
 
             if (tarEntry.isDirectory()) {
-                destPath.mkdirs();
+                destFile.mkdirs();
             } else {
-                destPath.createNewFile();
-                byte[] btoRead = new byte[1024];
-                try (BufferedOutputStream bout = new BufferedOutputStream(new FileOutputStream(destPath))) {
-                    int len;
-                    while ((len = tarIn.read(btoRead)) != -1) {
-                        bout.write(btoRead, 0, len);
-                    }
+                Path destPath = destFile.toPath();
+                destPath.getParent().toFile().mkdirs();
+                destFile.createNewFile();
+                try (BufferedOutputStream bout = new BufferedOutputStream(new FileOutputStream(destFile))) {
+                    tarIn.transferTo(bout);
                 }
-                if (destPath.getPath().endsWith("bin/crate")) {
-                    destPath.setExecutable(true);
-                } else if (destPath.getPath().endsWith("/bin/java")) {
-                    destPath.setExecutable(true);
+                if (destFile.getPath().endsWith("bin/crate")) {
+                    destFile.setExecutable(true);
+                } else if (destFile.getPath().endsWith("/bin/java")) {
+                    destFile.setExecutable(true);
                 }
             }
             tarEntry = tarIn.getNextTarEntry();
