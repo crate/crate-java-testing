@@ -36,6 +36,8 @@ import java.util.HashMap;
 
 import static io.crate.testing.Constants.CRATE_VERSION_FOR_TESTS;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.core.Is.is;
 
 public class ClusterTest extends BaseTest {
@@ -62,6 +64,34 @@ public class ClusterTest extends BaseTest {
             assertThat(response.get("rowcount").getAsLong(), is(2L));
             assertThat(response.getAsJsonArray("rows").get(0).getAsString(), is(VERSION));
             assertThat(response.getAsJsonArray("rows").get(1).getAsString(), is(VERSION));
+        } finally {
+            cluster.after();
+        }
+    }
+
+    @Test
+    public void testClusterBuilderCustomPort() throws Throwable {
+        CrateTestCluster cluster = CrateTestCluster.fromVersion(VERSION)
+            .httpPort(14010, 14011)
+            .transportPort(14012, 14013)
+            .psqlPort(14014, 14015)
+            .build();
+
+        try {
+            cluster.before();
+            prepare(cluster);
+            Collection<CrateTestServer> servers = cluster.servers();
+            CrateTestServer server = servers.iterator().next();
+
+            assertThat("HTTP port should be in the range 14010-14011", server.httpPort(), greaterThanOrEqualTo(14010));
+            assertThat("HTTP port should be in the range 14010-14011", server.httpPort(), lessThanOrEqualTo(14011));
+            
+            assertThat("Transport port should be in the range 14012-14013", server.transportPort(), greaterThanOrEqualTo(14012));
+            assertThat("Transport port should be in the range 14012-14013", server.transportPort(), lessThanOrEqualTo(14013));
+            
+            assertThat("PSQL port should be in the range 14014-14015", server.psqlPort(), greaterThanOrEqualTo(14014));
+            assertThat("PSQL port should be in the range 14014-14015", server.psqlPort(), lessThanOrEqualTo(14015));
+
         } finally {
             cluster.after();
         }

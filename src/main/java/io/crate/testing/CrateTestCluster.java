@@ -67,26 +67,36 @@ public class CrateTestCluster extends ExternalResource {
     private final String crateVersion;
     private final Map<String, Object> commandLineArguments;
 
+    private final int transportPortsFrom;
+    private final int transportPortsTo;
+
+    private final int httpPortsFrom;
+    private final int httpPortsTo;
+
+    private final int psqlPortsFrom;
+    private final int psqlPortsTo;
+
     private volatile CrateTestServer[] servers;
 
-    private CrateTestCluster(int numberOfNodes,
-                             String clusterName,
-                             Path workingDir,
-                             DownloadSource downloadSource,
-                             Map<String, Object> settings,
-                             String hostAddress,
-                             boolean keepWorkingDir,
-                             String crateVersion,
-                             Map<String, Object> commandLineArguments) {
-        this.numberOfNodes = numberOfNodes;
-        this.clusterName = clusterName;
-        this.workingDir = workingDir;
-        this.downloadSource = downloadSource;
-        this.settings = settings;
-        this.hostAddress = hostAddress;
-        this.keepWorkingDir = keepWorkingDir;
-        this.crateVersion = crateVersion;
-        this.commandLineArguments = commandLineArguments;
+    private CrateTestCluster(Builder builder) {
+        this.numberOfNodes = builder.numberOfNodes;
+        this.clusterName = builder.clusterName;
+        this.workingDir = builder.workingDir;
+        this.downloadSource = builder.downloadSource;
+        this.settings = builder.settings;
+        this.hostAddress = builder.hostAddress;
+        this.keepWorkingDir = builder.keepWorkingDir;
+        this.crateVersion = builder.crateVersion;
+        this.commandLineArguments = builder.commandLineArguments;
+
+        this.transportPortsFrom=builder.transportPortsFrom;
+        this.transportPortsTo=builder.transportPortsTo;
+
+        this.httpPortsFrom=builder.httpPortsFrom;
+        this.httpPortsTo=builder.httpPortsTo;
+
+        this.psqlPortsFrom=builder.psqlPortsFrom;
+        this.psqlPortsTo=builder.psqlPortsTo;
     }
 
     public static class Builder {
@@ -102,6 +112,15 @@ public class CrateTestCluster extends ExternalResource {
         private boolean keepWorkingDir = false;
         private String crateVersion;
         private Map<String, Object> commandLineArguments;
+
+        private int transportPortsFrom=4200;
+        private int transportPortsTo=4400;
+
+        private int httpPortsFrom=4500;
+        private int httpPortsTo=4600;
+
+        private int psqlPortsFrom=5432;
+        private int psqlPortsTo=5532;
 
         private Builder(DownloadSource downloadSource) {
             if (downloadSource == null) {
@@ -156,6 +175,24 @@ public class CrateTestCluster extends ExternalResource {
             return this;
         }
 
+        public Builder httpPort(int from, int to) {
+            this.httpPortsFrom=from;
+            this.httpPortsTo=to;
+            return this;
+        }
+
+        public Builder transportPort(int from, int to) {
+            this.transportPortsFrom=from;
+            this.transportPortsTo=to;
+            return this;
+        }
+
+        public Builder psqlPort(int from, int to) {
+            this.psqlPortsFrom=from;
+            this.psqlPortsTo=to;
+            return this;
+        }
+
         public Builder numberOfNodes(int numberOfNodes) {
             if (numberOfNodes <= 0) {
                 throw new IllegalArgumentException(String.format("invalid number of nodes: %d", numberOfNodes));
@@ -189,8 +226,7 @@ public class CrateTestCluster extends ExternalResource {
         }
 
         public CrateTestCluster build() {
-            return new CrateTestCluster(numberOfNodes, clusterName, workingDir, downloadSource,
-                settings, hostAddress, keepWorkingDir, crateVersion, commandLineArguments);
+            return new CrateTestCluster(this);
         }
     }
 
@@ -225,9 +261,9 @@ public class CrateTestCluster extends ExternalResource {
         int httpPorts[] = new int[numberOfNodes];
         int psqlPorts[] = new int[numberOfNodes];
         for (int i = 0; i < numberOfNodes; i++) {
-            transportPorts[i] = Utils.randomAvailablePort(4200, 4400);
-            httpPorts[i] = Utils.randomAvailablePort(4500, 4600);
-            psqlPorts[i] = Utils.randomAvailablePort(5432, 5532);
+            transportPorts[i] = Utils.randomAvailablePort(transportPortsFrom, transportPortsTo);
+            httpPorts[i] = Utils.randomAvailablePort(httpPortsFrom, httpPortsTo);
+            psqlPorts[i] = Utils.randomAvailablePort(psqlPortsFrom, psqlPortsTo);
         }
         CrateTestServer[] servers = new CrateTestServer[numberOfNodes];
 
