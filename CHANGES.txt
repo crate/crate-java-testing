@@ -2,8 +2,8 @@
 Changes for Crate-Java-Testing
 ==============================
 
-Unreleased
-==========
+2025-01-15 0.12.0
+=================
 
 - Added support for custom port ranges for httpPort, transportPort, and psqlPort on CrateTestCluster Builder.
 
