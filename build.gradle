@@ -130,6 +130,6 @@ nexusPublishing {
 signing {
     def signingKey = findProperty("signingKey")
     def signingPassword = findProperty("signingPassword")
-    useInMemoryPgpKeys(signingKey.chunked(64).joinToString("\n"), signingPassword)
+    useInMemoryPgpKeys(signingKey.toList().collate(64).join("\n"), signingPassword)
     sign(publishing.publications)
 }
