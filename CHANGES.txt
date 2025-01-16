@@ -2,6 +2,11 @@
 Changes for Crate-Java-Testing
 ==============================
 
+Unreleased
+==========
+
+- Fixed signing by adding newlines as Jenkins has removed.
+
 2025-01-15 0.12.0
 =================
 
