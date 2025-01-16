@@ -121,8 +121,10 @@ publishing {
 nexusPublishing {
     repositories {
         sonatype {
-            username = project.hasProperty('sonatypeUsername') ? sonatypeUsername : ""
-            password = project.hasProperty('sonatypePassword') ? sonatypePassword : ""
+            //username = project.hasProperty('sonatypeUsername') ? sonatypeUsername : ""
+            //password = project.hasProperty('sonatypePassword') ? sonatypePassword : ""
+            username = findProperty("sonatypeUsername")
+            password = findProperty("sonatypePassword")
         }
     }
 }
