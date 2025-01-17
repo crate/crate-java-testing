@@ -2,6 +2,11 @@
 Changes for Crate-Java-Testing
 ==============================
 
+2024-01-17 0.12.1
+=================
+
+- Sonatype now requires a access token username/password in order to publish artifacts.
+
 2025-01-15 0.12.0
 =================
 
