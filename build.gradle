@@ -84,6 +84,15 @@ java {
     withSourcesJar()
 }
 
+nexusPublishing {
+    repositories {
+        sonatype {
+            username = project.hasProperty('sonatypeTokenUsername') ? sonatypeTokenUsername : ""
+            password = project.hasProperty('sonatypeTokenPassword') ? sonatypeTokenPassword : ""
+        }
+    }
+}
+
 publishing {
     publications {
         mavenJava(MavenPublication) {
@@ -116,20 +125,18 @@ publishing {
             }
         }
     }
-}
-
-nexusPublishing {
     repositories {
-        sonatype {
-            username = project.hasProperty('sonatypeUsername') ? sonatypeUsername : ""
-            password = project.hasProperty('sonatypePassword') ? sonatypePassword : ""
+        maven {
+            url = 'https://oss.sonatype.org/service/local/staging/deploy/maven2/'
+            credentials {
+                username = project.hasProperty('sonatypeUsername') ? sonatypeUsername : ""
+                password = project.hasProperty('sonatypePassword') ? sonatypePassword : ""
+            }
         }
     }
 }
 
 signing {
-    def signingKey = findProperty("signingKey")
-    def signingPassword = findProperty("signingPassword")
-    useInMemoryPgpKeys(signingKey, signingPassword)
+    useGpgCmd()
     sign(publishing.publications)
 }
