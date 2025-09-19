@@ -87,6 +87,8 @@ java {
 nexusPublishing {
     repositories {
         sonatype {
+            nexusUrl.set(uri("https://ossrh-staging-api.central.sonatype.com/service/local/"))
+            snapshotRepositoryUrl.set(uri("https://central.sonatype.com/repository/maven-snapshots/"))
             username = project.hasProperty('sonatypeTokenUsername') ? sonatypeTokenUsername : ""
             password = project.hasProperty('sonatypeTokenPassword') ? sonatypeTokenPassword : ""
         }
@@ -122,15 +124,6 @@ publishing {
                     developerConnection = 'scm:git:ssh:git@github.com:crate/crate-java-testing.git'
                     url = 'https://github.com/crate/crate-java-testing'
                 }
-            }
-        }
-    }
-    repositories {
-        maven {
-            url = 'https://oss.sonatype.org/service/local/staging/deploy/maven2/'
-            credentials {
-                username = project.hasProperty('sonatypeUsername') ? sonatypeUsername : ""
-                password = project.hasProperty('sonatypePassword') ? sonatypePassword : ""
             }
         }
     }
