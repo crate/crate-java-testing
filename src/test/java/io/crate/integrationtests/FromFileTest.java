@@ -24,11 +24,14 @@ package io.crate.integrationtests;
 
 import com.google.gson.JsonObject;
 import io.crate.testing.CrateTestCluster;
+import io.crate.testing.Utils;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 
 import java.net.MalformedURLException;
+import java.net.URISyntaxException;
+import java.nio.file.Paths;
 
 import static io.crate.testing.Constants.CRATE_VERSION_FOR_TESTS;
 import static org.hamcrest.CoreMatchers.is;
@@ -39,9 +42,25 @@ public class FromFileTest extends BaseTest {
 
     private static final String CLUSTER_NAME = "from-file";
 
-    private static final String FILE = FromFileTest.class
-        .getResource(String.format("crate-%s.tar.gz", CRATE_VERSION_FOR_TESTS))
-        .getPath();
+    private static final String FILE;
+
+    static {
+        try {
+            FILE = Paths.get(
+                FromFileTest.class.getResource(archiveName()).toURI()
+            ).toString();
+        } catch (URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static String archiveName() {
+        if(Utils.isWindows()) {
+            return String.format("x64_windows/crate-%s.zip", CRATE_VERSION_FOR_TESTS);
+        }
+        return String.format("crate-%s.tar.gz", CRATE_VERSION_FOR_TESTS);
+    }
+
 
     @ClassRule
     public static CrateTestCluster fromFileCluster = CrateTestCluster

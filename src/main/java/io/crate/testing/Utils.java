@@ -28,16 +28,16 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
-import java.nio.file.FileVisitResult;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.SimpleFileVisitor;
+import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+import java.util.ArrayList;
 
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
@@ -78,20 +78,45 @@ public class Utils {
     }
 
     public static void deletePath(Path path) throws IOException {
+        List<Path> lockedFiles = new ArrayList<>();
+        List<Path> lockedDirs = new ArrayList<>();
+
         Files.walkFileTree(path, new SimpleFileVisitor<Path>() {
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                Files.delete(file);
+                try {
+                    Files.delete(file);
+                } catch (AccessDeniedException e) {
+                    Utils.log("Cannot delete locked file: %s (%s)", file, e.getMessage());
+                    lockedFiles.add(file);
+                }
                 return FileVisitResult.CONTINUE;
             }
 
             @Override
             public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
-                Files.delete(dir);
+                try {
+                    Files.delete(dir);
+                } catch (AccessDeniedException e) {
+                    Utils.log("Cannot delete locked directory: %s (%s)", dir, e.getMessage());
+                    lockedDirs.add(dir);
+                }
                 return FileVisitResult.CONTINUE;
             }
-
         });
+
+        // If there are locked files or dirs, move the entire directory to a temp fallback
+        if (!lockedFiles.isEmpty() || !lockedDirs.isEmpty()) {
+            Path parent = path.getParent();
+            Path fallbackDir = parent.resolve(path.getFileName() + "_pending_delete_" + System.currentTimeMillis());
+            try {
+                Files.move(path, fallbackDir, StandardCopyOption.ATOMIC_MOVE);
+                Utils.log("Moved locked directory to fallback: %s", fallbackDir);
+                fallbackDir.toFile().deleteOnExit();
+            } catch (IOException e) {
+                Utils.log("Failed to move directory to fallback: %s (%s)", fallbackDir, e.getMessage());
+            }
+        }
     }
 
     public static String sha1(String input) {
@@ -168,6 +193,45 @@ public class Utils {
             tarEntry = tarIn.getNextTarEntry();
         }
         tarIn.close();
+    }
+
+    public static void unzip(File zipFile, File dest) throws IOException {
+        try (ZipInputStream zipIn = new ZipInputStream(new BufferedInputStream(new FileInputStream(zipFile)))) {
+            ZipEntry entry = zipIn.getNextEntry();
+
+            while (entry != null) {
+                Path entryPath = Paths.get(entry.getName());
+                if (entryPath.getNameCount() == 1) {
+                    entry = zipIn.getNextEntry();
+                    continue;
+                }
+                Path strippedPath = entryPath.subpath(1, entryPath.getNameCount());
+                File destFile = new File(dest, strippedPath.toString());
+
+                if (entry.isDirectory()) {
+                    destFile.mkdirs();
+                } else {
+                    Path destPath = destFile.toPath();
+                    destPath.getParent().toFile().mkdirs();
+                    destFile.createNewFile();
+                    try (BufferedOutputStream bout = new BufferedOutputStream(new FileOutputStream(destFile))) {
+                        zipIn.transferTo(bout);
+                    }
+                    // Optional: set executable for specific files
+                    if (destFile.getPath().endsWith("bin/crate") || destFile.getPath().endsWith("/bin/java")) {
+                        destFile.setExecutable(true);
+                    }
+                }
+                zipIn.closeEntry();
+                entry = zipIn.getNextEntry();
+            }
+        }
+    }
+
+
+    public static boolean isWindows() {
+        String os = System.getProperty("os.name").toLowerCase();
+        return os.contains("win");
     }
 
 }

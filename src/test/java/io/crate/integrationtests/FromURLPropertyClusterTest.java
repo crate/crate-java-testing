@@ -42,8 +42,7 @@ public class FromURLPropertyClusterTest extends BaseTest {
     private static final String CLUSTER_NAME = "from-url-property";
 
     static {
-        System.setProperty(URL_PROPERTY,
-                           String.format("https://cdn.crate.io/downloads/releases/crate-%s.tar.gz", CRATE_VERSION_FOR_TESTS));
+        System.setProperty(URL_PROPERTY, FromUrlTest.getDownloadUrl());
     }
 
     @ClassRule

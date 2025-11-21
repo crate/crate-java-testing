@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 
 import com.google.gson.JsonObject;
 import io.crate.testing.CrateTestCluster;
+import io.crate.testing.Utils;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -40,9 +41,16 @@ public class FromUrlTest extends BaseTest {
 
     @ClassRule
     public static CrateTestCluster fromUrlCluster = CrateTestCluster
-        .fromURL(String.format("https://cdn.crate.io/downloads/releases/crate-%s.tar.gz", CRATE_VERSION_FOR_TESTS))
+        .fromURL(getDownloadUrl())
         .clusterName(CLUSTER_NAME)
         .build();
+
+    public static String getDownloadUrl() {
+        if(Utils.isWindows()) {
+            return String.format("https://cdn2.crate.io/downloads/releases/cratedb/x64_windows/crate-%s.zip", CRATE_VERSION_FOR_TESTS);
+        }
+        return String.format("https://cdn.crate.io/downloads/releases/cratedb/crate-%s.tar.gz", CRATE_VERSION_FOR_TESTS);
+    }
 
     @Before
     public void setUp() throws MalformedURLException {

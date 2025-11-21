@@ -127,7 +127,14 @@ public class CrateTestServer extends ExternalResource {
         Utils.log("Stopping crate server process...");
         if (crateProcess != null) {
             try {
-                crateProcess.destroy();
+                if(Utils.isWindows()) {
+                    ProcessHandle handle = crateProcess.toHandle();
+                    handle.descendants().forEach(ph -> {
+                        Utils.log("Destroying child process: %d", ph.pid());
+                        ph.destroy();
+                    });
+                }
+                crateProcess.destroyForcibly();
                 crateProcess.waitFor();
             } catch (Exception e) {
                 e.printStackTrace();
@@ -142,7 +149,7 @@ public class CrateTestServer extends ExternalResource {
         int idx = 0;
 
         String executable = Paths.get(workingDir.toString(), "bin", "crate").toString();
-        if (isWindows()) {
+        if (Utils.isWindows()) {
             executable = executable.concat(".bat");
         }
         command[idx++] = executable;
@@ -185,10 +192,6 @@ public class CrateTestServer extends ExternalResource {
             }
         });
         return crateProcess.pid();
-    }
-
-    private static boolean isWindows() {
-        return System.getProperty("os.name").toLowerCase(Locale.ENGLISH).contains("win");
     }
 
     Map<String, Object> prepareSettings() {
