@@ -23,6 +23,13 @@ Run the unit tests like so::
 
 .. _Gradle: https://gradle.org/
 
+
+If you are using MacOS, you can run the unit tests locally as::
+
+  docker run --rm --platform linux/x86_64 --user 501:0 -e HOME=/tmp -e GRADLE_USER_HOME=/tmp/.gradle -v "$PWD":/work -w /work eclipse-temurin:11-jdk bash -c './gradlew --no-daemon test'
+
+When on M1 or later, please enable Rosetta.
+
 Vulnerability Check
 ===================
 
