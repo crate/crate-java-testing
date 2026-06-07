@@ -451,6 +451,26 @@ public class CrateTestCluster extends ExternalResource {
         servers = null;
     }
 
+    /**
+     * Is cluster alive?
+     *
+     * @return true if all servers are alive, false otherwise
+     */
+    public Boolean isAlive() {
+        if (servers == null) return false;
+
+        for (CrateTestServer server : servers) {
+            if (server == null) {
+                return false;
+            } else {
+                if (!server.isAlive()) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
     private void removeCrateDir() throws IOException {
         Path cratePath = crateWorkingDir();
         if (Files.exists(cratePath) && !keepWorkingDir) {
