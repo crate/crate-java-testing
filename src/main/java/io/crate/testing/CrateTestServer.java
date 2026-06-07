@@ -135,6 +135,13 @@ public class CrateTestServer extends ExternalResource {
         }
     }
 
+    public Boolean isAlive() {
+        if (crateProcess == null) {
+            return false;
+        }
+        return crateProcess.isAlive();
+    }
+
     private long startCrateAsDaemon() throws IOException, InterruptedException {
         Map<String, Object> settingsMap = prepareSettings();
 
