@@ -36,19 +36,19 @@ public class FileDownloadSource implements DownloadSource {
 
     public static final String FOLDER_PREFIX = "crate-file-%s";
 
-    private final Path pathToTarGzDistribution;
+    private final Path pathToArchiveDistribution;
     private final String folderName;
 
-    public FileDownloadSource(String pathToTarGzDistribution) {
-        Path path = Paths.get(pathToTarGzDistribution);
+    public FileDownloadSource(String pathToArchiveDistribution) {
+        Path path = Paths.get(pathToArchiveDistribution);
         if (!Files.exists(path)) {
             throw new IllegalArgumentException(String
-                    .format(Locale.ENGLISH, "the for the given path [%s] does not exists", pathToTarGzDistribution));
+                    .format(Locale.ENGLISH, "the for the given path [%s] does not exists", pathToArchiveDistribution));
         }
-        this.pathToTarGzDistribution = path;
+        this.pathToArchiveDistribution = path;
         this.folderName = String.format(Locale.ENGLISH,
                 FOLDER_PREFIX,
-                Utils.sha1(pathToTarGzDistribution));
+                Utils.sha1(pathToArchiveDistribution));
     }
 
     @Override
@@ -58,11 +58,11 @@ public class FileDownloadSource implements DownloadSource {
 
     @Override
     public URL downloadUrl() throws MalformedURLException {
-        return pathToTarGzDistribution.toAbsolutePath().toUri().toURL();
+        return pathToArchiveDistribution.toAbsolutePath().toUri().toURL();
     }
 
     @Override
     public String toString() {
-        return String.format(Locale.ENGLISH, "FILE[%s]", pathToTarGzDistribution);
+        return String.format(Locale.ENGLISH, "FILE[%s]", pathToArchiveDistribution);
     }
 }

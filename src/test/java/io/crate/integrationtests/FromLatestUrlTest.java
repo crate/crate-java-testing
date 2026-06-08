@@ -23,9 +23,11 @@ package io.crate.integrationtests;
 
 import com.google.gson.JsonObject;
 import io.crate.testing.CrateTestCluster;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
+import io.crate.testing.Utils;
+import org.junit.*;
+import org.junit.rules.RuleChain;
+import org.junit.rules.TestRule;
+import org.junit.runners.model.Statement;
 
 import java.net.MalformedURLException;
 
@@ -37,16 +39,33 @@ public class FromLatestUrlTest extends BaseTest {
     private static final String CLUSTER_NAME = "from-latest-nightly-url";
 
     @ClassRule
+    public static final TestRule osSkipRule = (base, description) -> new Statement() {
+        @Override
+        public void evaluate() throws Throwable {
+            if (Utils.isWindows()) {
+                System.out.println("Skipping tests on Windows");
+                Assume.assumeTrue("Skipping on Windows", false); // causes a SKIP
+            }
+            base.evaluate();
+        }
+    };
+
+    @ClassRule
     public static CrateTestCluster fromUrlCluster = CrateTestCluster
         .fromURL("https://cdn.crate.io/downloads/releases/nightly/crate-latest.tar.gz")
         .clusterName(CLUSTER_NAME)
         .build();
 
+    @ClassRule
+    public static final RuleChain chain = RuleChain
+        .outerRule(osSkipRule)   // this runs first
+        .around(fromUrlCluster);
+
     @Before
     public void setUp() throws MalformedURLException {
         prepare(fromUrlCluster);
     }
-    
+
     /**
      * This test uses latest nightly build of crate and CrateDB 4.x requires JDK 11
      * and so this might fail if you're using older version of JDK.

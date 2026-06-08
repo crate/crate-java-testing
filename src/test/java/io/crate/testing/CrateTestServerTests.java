@@ -96,6 +96,10 @@ public class CrateTestServerTests extends RandomizedTest {
 
     @Test
     public void testJDK8IsUsedForCrateLt3_2() {
+        if(Utils.isWindows()) {
+            System.out.println("skipping test on windows as there is no version 3.2");
+            return;
+        }
         Assume.assumeTrue("Java8 is available on local system", System.getenv("GITHUB_ACTION") == null);
         HashMap<String, String> env = new HashMap<>();
         CrateTestServer.prepareEnvironment(env, "3.0.0");

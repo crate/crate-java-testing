@@ -29,18 +29,9 @@ import io.crate.testing.download.DownloadSources;
 import io.crate.testing.download.FileDownloadSource;
 import org.junit.rules.ExternalResource;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.InetAddress;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
+import java.io.*;
+import java.net.*;
+import java.nio.file.*;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeoutException;
@@ -201,7 +192,6 @@ public class CrateTestCluster extends ExternalResource {
             if (settings.isEmpty()) {
                 settings = new HashMap<>();
             }
-            settings.put("node.max_local_storage_nodes", numberOfNodes);
             return this;
         }
 
@@ -269,6 +259,11 @@ public class CrateTestCluster extends ExternalResource {
 
         String[] unicastHosts = getUnicastHosts(hostAddress, transportPorts);
         for (int i = 0; i < numberOfNodes; i++) {
+
+            Map<String,Object> nodeSettings = new HashMap<>(settings);
+            nodeSettings.put("node.name", "node-" + i);
+            nodeSettings.put("path.data", crateWorkingDir().resolve("node" + i));
+
             servers[i] = new CrateTestServer(
                 clusterName,
                 httpPorts[i],
@@ -276,7 +271,7 @@ public class CrateTestCluster extends ExternalResource {
                 psqlPorts[i],
                 crateWorkingDir(),
                 hostAddress,
-                settings,
+                nodeSettings,
                 commandLineArguments,
                 crateVersion,
                 unicastHosts
@@ -376,16 +371,22 @@ public class CrateTestCluster extends ExternalResource {
         }
     }
 
-    public void prepareEnvironment() throws IOException {
+    public void prepareEnvironment() throws IOException, URISyntaxException {
         createDirs();
-        Path downloadedCrateTarGz = downloadCrateTarGz();
+        Path downloadedCrateArchive = downloadCrateArchive();
         Path crateWorkingDir = crateWorkingDir();
 
         if (Files.notExists(crateWorkingDir)) {
-            Utils.uncompressTarGZ(
-                    downloadedCrateTarGz.toFile(),
-                    crateWorkingDir.toFile()
-            );
+            File archiveFile = downloadedCrateArchive.toFile();
+            String fileName = archiveFile.getName().toLowerCase();
+
+            if (fileName.endsWith(".tar.gz") || fileName.endsWith(".tgz")) {
+                Utils.uncompressTarGZ(archiveFile, crateWorkingDir.toFile());
+            } else if (fileName.endsWith(".zip")) {
+                Utils.unzip(archiveFile, crateWorkingDir.toFile());
+            } else {
+                throw new IllegalArgumentException("Unsupported archive format: " + fileName);
+            }
         }
     }
 
@@ -398,32 +399,32 @@ public class CrateTestCluster extends ExternalResource {
         }
     }
 
-    private Path downloadCrateTarGz() throws IOException {
-        String tarGzFileName = fileNameFromDownloadSource(downloadSource);
+    private Path downloadCrateArchive() throws IOException, URISyntaxException {
+        String archiveFileName = fileNameFromDownloadSource(downloadSource);
 
-        Path tarGz;
+        Path archive;
         if (downloadSource instanceof FileDownloadSource) {
-            tarGz = Paths.get(downloadSource.downloadUrl().getPath());
+            archive = Paths.get(downloadSource.downloadUrl().toURI());
         } else {
-            tarGz = TMP_CACHE_DIR.resolve(tarGzFileName);
+            archive = TMP_CACHE_DIR.resolve(archiveFileName);
         }
 
-        boolean isLatestDistribution = tarGzFileName.contains(LATEST_DISTRIBUTION_VERSION_IDENTIFIER);
-        if (!isLatestDistribution && Files.exists(tarGz)) {
-            Utils.log("No need to download crate. Already downloaded %s to: %s", downloadSource, tarGz);
+        boolean isLatestDistribution = archiveFileName.contains(LATEST_DISTRIBUTION_VERSION_IDENTIFIER);
+        if (!isLatestDistribution && Files.exists(archive)) {
+            Utils.log("No need to download crate. Already downloaded %s to: %s", downloadSource, archive);
         } else {
-            Path tarGzPart = TMP_CACHE_DIR.resolve(String.format("%s.part-%s", tarGzFileName, clusterUUID));
-            Utils.log("Downloading Crate %s to: %s", downloadSource, tarGzPart);
+            Path archivePart = TMP_CACHE_DIR.resolve(String.format("%s.part-%s", archiveFileName, clusterUUID));
+            Utils.log("Downloading Crate %s to: %s", downloadSource, archivePart);
             try (InputStream in = downloadSource.downloadUrl().openStream()) {
-                Files.copy(in, tarGzPart);
+                Files.copy(in, archivePart);
             }
             if(isLatestDistribution) {
-                Files.move(tarGzPart, tarGz, StandardCopyOption.REPLACE_EXISTING);
+                Files.move(archivePart, archive, StandardCopyOption.REPLACE_EXISTING);
             } else {
-                Files.move(tarGzPart, tarGz);
+                Files.move(archivePart, archive);
             }
         }
-        return tarGz;
+        return archive;
     }
 
     private String fileNameFromDownloadSource(DownloadSource downloadSource) throws MalformedURLException {
@@ -445,16 +446,26 @@ public class CrateTestCluster extends ExternalResource {
         }
         try {
             removeCrateDir();
-        } catch (IOException e) {
+        } catch (IOException | InterruptedException e) {
             Utils.log("Error while deleting crate directory: %s error: %s", crateWorkingDir(), e);
         }
         servers = null;
     }
 
-    private void removeCrateDir() throws IOException {
+    private void removeCrateDir() throws IOException, InterruptedException {
         Path cratePath = crateWorkingDir();
         if (Files.exists(cratePath) && !keepWorkingDir) {
-            Utils.deletePath(cratePath);
+
+            for (int i = 0; i < 10; i++) {
+                try {
+                    Utils.deletePath(cratePath);
+                    break;
+                } catch (AccessDeniedException e) {
+                    Thread.sleep(1000); // wait and retry
+                    Utils.log("Retrying to delete crate directory: %s error: %s", crateWorkingDir(), e);
+                }
+            }
+
             assert Files.notExists(cratePath);
         }
     }

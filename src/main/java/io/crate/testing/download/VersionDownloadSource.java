@@ -21,6 +21,8 @@
 
 package io.crate.testing.download;
 
+import io.crate.testing.Utils;
+
 import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -28,7 +30,18 @@ import java.util.Locale;
 
 class VersionDownloadSource implements DownloadSource {
 
-    public static final String VERSION_DOWNLOAD_URL =  "https://cdn.crate.io/downloads/releases/crate-%s.tar.gz";
+    public static final String VERSION_DOWNLOAD_URL;
+
+    static {
+        VERSION_DOWNLOAD_URL=getVersionDownloadUrl();
+    }
+
+    public static String getVersionDownloadUrl() {
+        if(Utils.isWindows()) {
+            return "https://cdn2.crate.io/downloads/releases/cratedb/x64_windows/crate-%s.zip";
+        }
+        return "https://cdn.crate.io/downloads/releases/cratedb/crate-%s.tar.gz";
+    }
 
     private final String version;
     private final String folderName;
