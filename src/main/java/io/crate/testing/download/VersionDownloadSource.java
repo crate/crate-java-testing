@@ -28,7 +28,14 @@ import java.util.Locale;
 
 class VersionDownloadSource implements DownloadSource {
 
-    public static final String VERSION_DOWNLOAD_URL =  "https://cdn.crate.io/downloads/releases/crate-%s.tar.gz";
+    public static final String RELEASE_URL = "https://cdn.crate.io/downloads/releases/crate-%s.tar.gz";
+    public static final String RELEASE_PLATFORM_URL = "https://cdn.crate.io/downloads/releases/cratedb/%s/crate-%s.tar.gz";
+    public static final String NIGHTLY_URL = "https://cdn.crate.io/downloads/releases/nightly/crate-latest.tar.gz";
+    public static final String NIGHTLY_PLATFORM_URL = "https://cdn.crate.io/downloads/releases/nightly/%s/crate-latest.tar.gz";
+    public static final String X64_LINUX = "x64_linux";
+    public static final String X64_WINDOWS = "x64_windows";
+    public static final String AARCH64_LINUX = "aarch64_linux";
+    public static final String AARCH64_MAC = "aarch64_mac";
 
     private final String version;
     private final String folderName;
@@ -45,7 +52,58 @@ class VersionDownloadSource implements DownloadSource {
 
     @Override
     public URL downloadUrl() throws MalformedURLException {
-        return new URL(String.format(Locale.ENGLISH, VERSION_DOWNLOAD_URL, version));
+        return buildDownloadUrl(this.version, platform(
+                System.getProperty("os.name"),
+                System.getProperty("os.arch")));
+    }
+
+    static URL buildDownloadUrl(String version, String platform) throws MalformedURLException {
+        if (version.equals("latest") || version.equals("nightly")) {
+            switch (platform) {
+                case AARCH64_MAC:
+                case AARCH64_LINUX:
+                    return new URL(String.format(Locale.ENGLISH, NIGHTLY_PLATFORM_URL, platform));
+                case X64_LINUX:
+                    return new URL(NIGHTLY_URL);
+                default:
+                    throw new MalformedURLException(String.format("Platform %s not supported", platform));
+            }
+        }
+        switch (platform) {
+            // There are currently no aarch64_mac releases besides nightly. Fallback to x64_mac release
+            // which needs an emulation layer (i.e. Rosetta 2)
+            case AARCH64_MAC:
+                return new URL(String.format(Locale.ENGLISH, RELEASE_PLATFORM_URL, "x64_mac", version));
+            case AARCH64_LINUX:
+            case X64_WINDOWS:
+                return new URL(String.format(Locale.ENGLISH, RELEASE_PLATFORM_URL, platform, version));
+            case X64_LINUX:
+                return new URL(String.format(Locale.ENGLISH, RELEASE_URL, version));
+            default:
+                throw new MalformedURLException(String.format("Platform %s not supported", platform));
+        }
+    }
+
+    static String platform(String rawOsName, String rawArchName) {
+        String archName = rawArchName.toLowerCase();
+        String osName = rawOsName.toLowerCase();
+        String os;
+        String arch;
+
+        if (archName.equals("arm") || archName.equals("aarch64")) {
+            arch = "aarch64";
+        } else {
+            arch = "x64";
+        }
+
+        if (osName.equals("mac os x")) {
+            os = "mac";
+        } else if (osName.startsWith("windows")) {
+            os = "windows";
+        } else {
+            os = osName;
+        }
+        return arch + "_" + os;
     }
 
     @Override
