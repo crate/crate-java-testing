@@ -2,6 +2,11 @@
 Changes for Crate-Java-Testing
 ==============================
 
+2026-08-06 0.13.0
+=================
+
+- Added automatic detection of the appropriate download URL based on the platform in VersionDownloadSource
+
 2024-01-17 0.12.1
 =================
 
