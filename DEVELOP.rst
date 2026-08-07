@@ -60,5 +60,8 @@ To create a new release, you must:
 Maven Central Deployment
 ========================
 
-The artifacts can be uploaded to maven central using ``./gradlew uploadArchives closeAndReleaseRepository``.
-This gradle task requires signing and sonatype credentials.
+We deploy the artifcats via a Jenkins job, `crate_java_testing_publish`_.
+Navigate to this site, and run "Build with Parameters" on the master branch, and a new release will be published to `maven central`_.
+
+.. _crate_java_testing_publish_: https://jenkins.crate.io/job/Ecosystem/job/Release/job/Devtools/job/crate_java_testing_publish/
+.. _maven_central_: https://central.sonatype.com/artifact/io.crate/crate-testing
