@@ -28,7 +28,6 @@ import java.util.Locale;
 
 class VersionDownloadSource implements DownloadSource {
 
-    public static final String RELEASE_URL = "https://cdn.crate.io/downloads/releases/crate-%s.tar.gz";
     public static final String RELEASE_PLATFORM_URL = "https://cdn.crate.io/downloads/releases/cratedb/%s/crate-%s.tar.gz";
     public static final String NIGHTLY_URL = "https://cdn.crate.io/downloads/releases/nightly/crate-latest.tar.gz";
     public static final String NIGHTLY_PLATFORM_URL = "https://cdn.crate.io/downloads/releases/nightly/%s/crate-latest.tar.gz";
@@ -76,9 +75,8 @@ class VersionDownloadSource implements DownloadSource {
                 return new URL(String.format(Locale.ENGLISH, RELEASE_PLATFORM_URL, "x64_mac", version));
             case AARCH64_LINUX:
             case X64_WINDOWS:
-                return new URL(String.format(Locale.ENGLISH, RELEASE_PLATFORM_URL, platform, version));
             case X64_LINUX:
-                return new URL(String.format(Locale.ENGLISH, RELEASE_URL, version));
+                return new URL(String.format(Locale.ENGLISH, RELEASE_PLATFORM_URL, platform, version));
             default:
                 throw new MalformedURLException(String.format("Platform %s not supported", platform));
         }
