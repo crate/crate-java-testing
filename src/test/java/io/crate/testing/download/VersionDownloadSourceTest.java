@@ -81,7 +81,7 @@ public class VersionDownloadSourceTest {
                     { "6.4.0", "x64_windows",
                             "https://cdn.crate.io/downloads/releases/cratedb/x64_windows/crate-6.4.0.tar.gz" },
                     { "6.4.0", "x64_linux",
-                            "https://cdn.crate.io/downloads/releases/crate-6.4.0.tar.gz" },
+                            "https://cdn.crate.io/downloads/releases/cratedb/x64_linux/crate-6.4.0.tar.gz" },
                     { "latest", "aarch64_mac",
                             "https://cdn.crate.io/downloads/releases/nightly/aarch64_mac/crate-latest.tar.gz" },
                     { "latest", "aarch64_linux",

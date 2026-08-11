@@ -28,6 +28,8 @@ import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.MalformedURLException;
 
 import static io.crate.testing.Constants.CRATE_VERSION_FOR_TESTS;
@@ -38,6 +40,19 @@ import static org.hamcrest.MatcherAssert.assertThat;
 public class FromFileTest extends BaseTest {
 
     private static final String CLUSTER_NAME = "from-file";
+
+    private static final CrateTestCluster dummyCluster = CrateTestCluster
+        .fromVersion(CRATE_VERSION_FOR_TESTS)
+        .clusterName("dummy")
+        .build();
+
+    static {
+        try {
+            dummyCluster.prepareEnvironment();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
 
     private static final String FILE = FromFileTest.class
         .getResource(String.format("crate-%s.tar.gz", CRATE_VERSION_FOR_TESTS))

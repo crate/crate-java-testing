@@ -38,7 +38,7 @@ public class FromLatestUrlTest extends BaseTest {
 
     @ClassRule
     public static CrateTestCluster fromUrlCluster = CrateTestCluster
-        .fromURL("https://cdn.crate.io/downloads/releases/nightly/crate-latest.tar.gz")
+        .fromVersion("latest")
         .clusterName(CLUSTER_NAME)
         .build();
 
@@ -46,7 +46,7 @@ public class FromLatestUrlTest extends BaseTest {
     public void setUp() throws MalformedURLException {
         prepare(fromUrlCluster);
     }
-    
+
     /**
      * This test uses latest nightly build of crate and CrateDB 4.x requires JDK 11
      * and so this might fail if you're using older version of JDK.
